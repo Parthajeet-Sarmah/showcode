@@ -1,5 +1,4 @@
 <div align="center" style="width: 100%; height: 150px;">
-  <img style="scale:0.5; border-radius:30px;" src="assets/showcode_logo.png">
   <img src="assets/showcode_wm.png">
 </div>
 
