@@ -57,7 +57,7 @@ async function fetchData() {
 }
 
 function setupTabs() {
-	const tabs = document.querySelectorAll('.tab-btn');
+	const tabs = document.querySelectorAll('.tab-btn, .settings-btn');
 	tabs.forEach(btn => {
 		btn.addEventListener('click', () => {
 			const target = btn.dataset.tab;

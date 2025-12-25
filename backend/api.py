@@ -1,11 +1,12 @@
+from functools import lru_cache
 import json
 import logging
 import httpx
-from typing import AsyncGenerator
+from typing import Annotated, AsyncGenerator, Dict, List
 
 from typing import Optional
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from google import genai
@@ -15,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS, LLAMA_SERVER_URL, MODEL_NAME, MODEL_NAME_FOR_SNIPPETS
 
+import config
 import ollama
 
 try:
@@ -52,15 +54,25 @@ app.add_middleware(
 
 
 class CodeAnalysisRequest(BaseModel):
-
     code: str = Field(..., description="The code snippet to be analyzed.")
     context: Optional[str] = Field(
         None, description="Optional context about the code's purpose."
     )
 
+class APIKey(BaseModel):
+    key: str = Field("", description="The encrypted key.")
+    model_id: str = Field("", description="The model related to the key.")
+    url: Optional[str] = Field("", description="Optional URL (only for local providers)")
+
+class APIKeyPayload(BaseModel):
+    data: Dict[str, List[APIKey]]
+
+@lru_cache
+def get_settings():
+    return config.Settings()
 
 @app.post("/analyze_code_llama_server", tags=["Analysis"])
-async def analyze_code_endpoint(request_data: CodeAnalysisRequest):
+async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest):
 
     user_content = f"CODE SNIPPET:\n---\n{request_data.code}\n---"
     if request_data.context:
@@ -279,6 +291,12 @@ async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest):
         user_content += f"\nADDITIONAL CONTEXT:\n---\n{request_data.context}\n---"
 
     async def generate_stream() -> AsyncGenerator[str, None]:
+        if gclient is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Gemini client is not initialized. Ensure GEMINI_API_KEY is set.",
+            )
+
         try:
             stream = gclient.models.generate_content_stream(
                 model="gemini-2.5-flash",
@@ -300,3 +318,11 @@ async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest):
             yield f"\n[SERVER_ERROR] An unexpected error occurred: {e}"
 
     return StreamingResponse(generate_stream(), media_type="text/plain")
+
+@app.get("/.well-known/rsa-key", tags=["RSA public key"])
+async def get_rsa_public_key():
+    return FileResponse(
+        path="./public_key.pem",
+        status_code=200,
+        filename="public_key.pem"
+    )

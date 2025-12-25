@@ -1,3 +1,4 @@
+*.env
 dx-tools/
 marketing/
 showcode/

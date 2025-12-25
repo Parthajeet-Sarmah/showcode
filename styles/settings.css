@@ -2,77 +2,121 @@
 .settings-container {
     display: flex;
     flex-direction: column;
-    gap: 32px; /* Increased gap between cards */
-    padding-bottom: 100px; /* Space for floating save bar */
+    gap: 16px; /* Tighter gap for accordions */
+    padding-bottom: 100px; 
     max-width: 800px;
     margin: 0 auto;
     animation: fadeIn 0.4s ease-out;
 }
 
-/* Card Styling - The white boxes */
+/* Card Styling */
 .settings-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 16px; /* softer rounded corners */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); /* Very subtle depth */
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .settings-card:hover {
     border-color: #cbd5e1;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
 }
 
-/* Header Section of Cards */
+.settings-card.open {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Header Section */
 .settings-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 24px;
-    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    background: #ffffff; /* White background for clean accordion look */
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.settings-header:hover {
     background: #f8fafc;
 }
 
+.settings-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .settings-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-		padding: 8px;
-    background: white;
+    padding: 6px;
+    background: #f1f5f9;
     color: var(--text-sub);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border-radius: 8px;
+    border: 1px solid transparent;
 }
 
-.settings-header-left {
-	display: flex;
-	justify-content: center;
-	gap: 15px;
-}
-
-.settings-icon > img {
-	width: 100%;
-	height: 100%;
+.settings-icon > img, .settings-icon > svg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .settings-title {
     font-family: "Space Grotesk", sans-serif;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--text-main);
     margin: 0;
+    line-height: 1.2;
 }
 
-/* Body Section of Cards */
-.settings-body {
-    padding: 24px;
+.provider-type {
+    font-size: 0.75rem;
+    color: var(--text-sub);
+    font-weight: 500;
+}
+
+/* Accordion Controls */
+.accordion-controls {
     display: flex;
-    flex-direction: column;
-    gap: 24px; /* Space between input groups */
+    align-items: center;
+    gap: 12px;
+}
+
+.chevron-icon {
+    color: var(--text-sub);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-card.open .chevron-icon {
+    transform: rotate(180deg);
+    color: var(--text-main);
+}
+
+/* Body Section (Collapsible) */
+.settings-body {
+    padding: 0 24px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #fdfdfd;
+    border-top: 1px solid transparent;
+}
+
+.settings-card.open .settings-body {
+    padding: 24px; /* Restore padding when open */
+    max-height: 1000px; /* Arbitrary large height */
+    opacity: 1;
+    border-top-color: var(--border);
 }
 
 /* Input Styling */
@@ -84,23 +128,23 @@
 
 .input-label {
     font-family: "Space Grotesk", sans-serif;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-main);
 }
 
 .input-wrapper {
     display: flex;
-    gap: 12px;
+    gap: 10px;
 }
 
 .settings-input {
     flex: 1;
-    padding: 12px 16px;
+    padding: 10px 14px;
     border: 1px solid var(--border);
     border-radius: 8px;
     font-family: "JetBrains Mono", monospace;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-main);
     background: white;
     outline: none;
@@ -109,7 +153,7 @@
 
 .settings-input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .settings-input.saved {
@@ -119,17 +163,17 @@
 }
 
 .settings-helper-text {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-sub);
     margin: 4px 0 0 0;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
 /* Status Badges */
 .status-badge {
     font-family: "Space Grotesk", sans-serif;
     font-size: 0.75rem;
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: 20px;
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -142,11 +186,12 @@
 
 /* Action Buttons */
 .btn-action {
-    padding: 0 20px;
+    padding: 0 16px;
     background: white;
     border: 1px solid var(--border);
     border-radius: 8px;
     font-weight: 600;
+    font-size: 0.85rem;
     color: var(--text-main);
     cursor: pointer;
     transition: all 0.2s;
@@ -161,8 +206,8 @@
 
 /* Model Selection Area */
 .model-selection-area {
-    margin-top: 8px;
-    padding-top: 24px;
+    margin-top: 15px;
+    padding-top: 20px;
     border-top: 1px dashed var(--border);
     display: none;
 }
@@ -170,7 +215,7 @@
 .model-selection-area.active {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
     animation: slideDown 0.3s ease forwards;
 }
 
@@ -181,20 +226,19 @@
 
 .radio-group-label {
     font-family: "Space Grotesk", sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: var(--text-sub);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     display: block;
 }
 
-/* Grid layout for model options */
 .radio-options {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
+    gap: 10px;
 }
 
 /* Styled Radio Cards */
@@ -202,11 +246,11 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
+    gap: 8px;
+    padding: 10px 12px;
     background: #fff;
-    border: 2px solid var(--border); /* Thicker border */
-    border-radius: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
@@ -217,23 +261,21 @@
     background: #f8fafc;
 }
 
-/* Hide default radio input */
 .model-radio-label input {
     appearance: none;
     position: absolute;
     opacity: 0;
 }
 
-/* Selected State */
 .model-radio-label:has(input:checked) {
     border-color: var(--primary);
     background: #eff6ff;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 2px 4px -1px rgba(59, 130, 246, 0.1);
 }
 
 .model-radio-label span {
     font-family: "Space Grotesk", sans-serif;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-main);
     z-index: 1;
@@ -243,22 +285,22 @@
     color: var(--primary);
 }
 
-/* Floating Save Bar */
+/* Save Bar */
 .save-bar {
     position: fixed;
     bottom: 30px;
     left: 50%;
-    transform: translateX(-50%) translateY(150px); /* Hidden by default */
-    background: #0f172a; /* Dark Navy */
+    transform: translateX(-50%) translateY(150px);
+    background: #0f172a;
     color: white;
     padding: 12px 12px 12px 24px;
-    border-radius: 14px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
-    gap: 30px;
+    gap: 24px;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
     z-index: 1000;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy pop-up */
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     border: 1px solid rgba(255,255,255,0.1);
 }
 
@@ -270,35 +312,33 @@
     background: var(--primary);
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 8px 16px;
+    border-radius: 6px;
     font-family: "Space Grotesk", sans-serif;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: background 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
 .btn-save:hover {
     background: var(--primary-hover);
 }
 
-.hidden-file-input {
-    display: none;
-}
+/* File Input */
+.hidden-file-input { display: none; }
 
 .file-upload-label {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 6px 6px 16px; /* Compact padding */
+    padding: 4px 4px 4px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: white;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-height: 42px; /* Match height of text inputs */
+    min-height: 40px;
 }
 
 .file-upload-label:hover {
@@ -308,7 +348,7 @@
 
 .file-name-display {
     font-family: "JetBrains Mono", monospace;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-sub);
     white-space: nowrap;
     overflow: hidden;
@@ -321,7 +361,6 @@
     font-weight: 500;
 }
 
-/* Simulated Browse Button */
 .file-custom-btn {
     background: var(--bg-color);
     border: 1px solid var(--border);
@@ -329,12 +368,61 @@
     padding: 6px 12px;
     border-radius: 6px;
     font-family: "Space Grotesk", sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    pointer-events: none; /* Let the click pass through to the label */
+    pointer-events: none;
 }
 
-.file-upload-label:hover .file-custom-btn {
-    background: #e2e8f0;
-    border-color: #cbd5e1;
+/* Toggle Switch Styling */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0; /* Prevent shrinking in flex containers */
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1; /* Neutral grey for off state */
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px 0 rgba(0,0,0,0.1);
+}
+
+/* Checked State */
+.toggle-switch input:checked + .slider {
+    background-color: var(--primary);
+}
+
+.toggle-switch input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+/* Focus State for Accessibility */
+.toggle-switch input:focus + .slider {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }

@@ -80,6 +80,32 @@ body {
 	margin-right: auto;
 }
 
+.settings-btn {
+	background: transparent;
+	position: absolute;
+	right: 40px;
+	top: 40px;
+	font-family: "Space Grotesk", -apple-system, sans-serif;
+	font-weight: bold;
+	border: 1px solid transparent;
+	color: var(--text-sub);
+	padding: 8px;
+	border-radius: 20px;
+	font-weight: 600;
+	display: flex;
+	cursor: pointer;
+}
+
+.settings-btn:hover {
+	background: #e2e8f0;
+	color: var(--text-main);
+}
+
+.settings-btn.active {
+	background: var(--text-main);
+	color: white;
+}
+
 .tab-btn {
 	background: transparent;
 	font-family: "Space Grotesk", -apple-system, sans-serif;
