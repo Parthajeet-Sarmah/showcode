@@ -107,7 +107,6 @@ export function renderAlignmentView(container, dataArray) {
 								prevScore = parseInt(prevScore[1]);
 							}
 
-							console.log(prevScore, score);
 							meanScoreSpan.textContent = `(Mean Score: ${parseInt(prevScore + score / snippetsCount)})`;
 						}
 

@@ -7,6 +7,8 @@ export async function callCodeAnalysisApi(codeSnippet, outputEle, firstTokenGene
 	var score = 0;
 	let isFirstTokenGenerated = false;
 
+	outputEle.innerHTML = '';
+
 	const data = {
 		code: codeSnippet,
 		context: context
@@ -89,6 +91,8 @@ export async function callSnippetAnalysisApi(codeSnippet, outputEle, firstTokenG
 	let isFirstTokenGenerated = false;
 
 	const settingsHeaders = getSettingsHeaders()
+
+	outputEle.innerHTML = '';
 
 	const data = {
 		code: codeSnippet,

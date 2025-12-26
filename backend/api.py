@@ -19,6 +19,10 @@ from constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS, LLAMA_SERVER_UR
 import config
 import ollama
 
+@lru_cache
+def get_settings():
+    return config.Settings()
+
 try:
     client = ollama.AsyncClient()
 except Exception as e:
@@ -26,7 +30,8 @@ except Exception as e:
     client = None
 
 try:
-    gclient = genai.Client()
+    settings = get_settings()
+    gclient = genai.Client(api_key=settings.GEMINI_API_KEY)
 except Exception as e:
     logging.error(f"Failed to initialize Gemini client: {e}")
     gclient = None
@@ -67,10 +72,6 @@ class APIKey(BaseModel):
 class APIKeyPayload(BaseModel):
     data: Dict[str, List[APIKey]]
 
-@lru_cache
-def get_settings():
-    return config.Settings()
-
 @app.post("/analyze", tags=["Proxy Route"])
 async def proxy_via_headers(request: Request):
 
@@ -90,7 +91,13 @@ async def proxy_via_headers(request: Request):
 
 
 @app.post("/analyze_code_srvllama", tags=["Analysis"])
-async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest):
+async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest, x_local_alignment_model: str | None = Header(default=None)):
+
+    if not x_local_alignment_model:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid model name"
+        )
 
     user_content = f"CODE SNIPPET:\n---\n{request_data.code}\n---"
     if request_data.context:
@@ -102,7 +109,7 @@ async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest):
     ]
 
     payload = {
-        "model": MODEL_NAME,
+        "model": x_local_alignment_model,
         "messages": messages,
         "stream": True,
         "temperature": 0.5,
@@ -154,7 +161,14 @@ async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest):
 
 
 @app.post("/analyze_snippet_srvllama", tags=["Analysis"])
-async def analyze_snippet_llama_server_endpoint(request_data: CodeAnalysisRequest):
+async def analyze_snippet_llama_server_endpoint(request_data: CodeAnalysisRequest, x_local_snippet_model: str | None = Header(default=None)):
+
+    if not x_local_snippet_model:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid model name"
+        )
+        
  
     full_prompt = f"{request_data.code}"
 
@@ -164,7 +178,7 @@ async def analyze_snippet_llama_server_endpoint(request_data: CodeAnalysisReques
     ]
 
     payload = {
-        "model": MODEL_NAME_FOR_SNIPPETS,
+        "model": x_local_snippet_model,
         "messages": messages,
         "stream": True,
         "temperature": 0.5,
@@ -263,7 +277,15 @@ async def analyze_snippet_endpoint(request_data: CodeAnalysisRequest, x_local_sn
 
 
 @app.post("/analyze_code_ollama", tags=["Analysis"])
-async def analyze_code_endpoint(request_data: CodeAnalysisRequest):
+async def analyze_code_endpoint(request_data: CodeAnalysisRequest, x_local_alignment_model: str | None = Header(default=None)):
+
+    if not x_local_alignment_model:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid model name"
+        )
+
+
     if client is None:
         raise HTTPException(
             status_code=503,
@@ -281,7 +303,7 @@ async def analyze_code_endpoint(request_data: CodeAnalysisRequest):
                 )
             
             stream = await client.generate(
-                model=MODEL_NAME, 
+                model=x_local_alignment_model, 
                 prompt=full_prompt, 
                 system=SYSTEM_PROMPT, 
                 stream=True
@@ -305,7 +327,10 @@ async def analyze_code_endpoint(request_data: CodeAnalysisRequest):
 
 @app.post("/analyze_snippet_gemini", tags=["Analysis"])
 @app.post("/analyze_code_gemini", tags=["Analysis"])
-async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest):
+async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest, x_use_snippet_model: str | None = Header(default=None)):
+
+    isSnippet = True if x_use_snippet_model == 'true' else False
+    systemPrompt = SYSTEM_PROMPT_FOR_SNIPPETS if isSnippet else SYSTEM_PROMPT
 
     if gclient is None:
         raise HTTPException(
@@ -313,9 +338,14 @@ async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest):
             detail="Gemini client is not initialized. Ensure GEMINI_API_KEY is set.",
         )
 
-    user_content = f"CODE SNIPPET:\n---\n{request_data.code}\n---"
-    if request_data.context:
-        user_content += f"\nADDITIONAL CONTEXT:\n---\n{request_data.context}\n---"
+    user_content = ""
+
+    if not isSnippet:
+        user_content = f"\n{request_data.code}\n"
+        if request_data.context:
+            user_content += f"\nADDITIONAL CONTEXT:\n---\n{request_data.context}\n---"
+    else:
+        user_content = f"\n{request_data.code}\n"
 
     async def generate_stream() -> AsyncGenerator[str, None]:
         if gclient is None:
@@ -329,7 +359,7 @@ async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest):
                 model="gemini-2.5-flash",
                 contents=[user_content],  
                 config=genai.types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT, response_mime_type="text/plain"
+                    system_instruction=systemPrompt, response_mime_type="text/plain"
                 ),
             )
 
