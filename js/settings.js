@@ -4,10 +4,10 @@ const SETTINGS_KEY = 'showcode_app_settings';
 
 // Default state including new providers and default selections
 let currentSettings = {
-	geminiEncrypted: '',
-	openaiEncrypted: '',
-	anthropicEncrypted: '',
-	grokEncrypted: '',
+	geminiEncrypted: {},
+	openaiEncrypted: {},
+	anthropicEncrypted: {},
+	grokEncrypted: {},
 	useLocalProvider: true,
 	defaultCloudProvider: 'gemini', // Default selection
 	defaultLocalProvider: 'ollama', // Default selection
@@ -62,7 +62,7 @@ async function saveSettings() {
 
 			try {
 				const encrypted = await encryptWithPublicKey(rawInput, pemContent);
-				currentSettings[settingKey] = encrypted.ciphertext || encrypted;
+				currentSettings[settingKey] = encrypted;
 				document.getElementById(inputId).value = "";
 			} catch (e) {
 				console.error(`Failed to encrypt ${settingKey}`, e);
@@ -135,7 +135,7 @@ function renderSettings(container) {
 	if (!container) return;
 
 	const renderKeyInput = (id, settingKey, placeholder) => {
-		const isSaved = !!currentSettings[settingKey];
+		const isSaved = !!Object.entries(currentSettings[settingKey]).length;
 		const ph = isSaved ? "•••••••• [Encrypted Key Saved] ••••••••" : placeholder;
 		const cls = isSaved ? "settings-input saved" : "settings-input";
 		const clearStyle = isSaved ? "display:block" : "display:none";
@@ -271,8 +271,8 @@ function renderSettings(container) {
                         </div>
                     </div>
                     <div class="accordion-controls">
-                        <span class="status-badge ${currentSettings.geminiEncrypted ? 'connected' : 'default'}">
-                            ${currentSettings.geminiEncrypted ? 'Configured' : 'Not Configured'}
+                        <span class="status-badge ${Object.entries(currentSettings.geminiEncrypted).length > 0 ? 'connected' : 'default'}">
+                            ${Object.entries(currentSettings.geminiEncrypted).length > 0 ? 'Configured' : 'Not Configured'}
                         </span>
                         <svg class="chevron-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
@@ -297,8 +297,8 @@ function renderSettings(container) {
                         </div>
                     </div>
                     <div class="accordion-controls">
-                        <span class="status-badge ${currentSettings.openaiEncrypted ? 'connected' : 'default'}">
-                            ${currentSettings.openaiEncrypted ? 'Configured' : 'Not Configured'}
+                        <span class="status-badge ${Object.entries(currentSettings.openaiEncrypted).length > 0 ? 'connected' : 'default'}">
+                            ${Object.entries(currentSettings.openaiEncrypted).length > 0 ? 'Configured' : 'Not Configured'}
                         </span>
                         <svg class="chevron-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
@@ -323,8 +323,8 @@ function renderSettings(container) {
                         </div>
                     </div>
                     <div class="accordion-controls">
-                        <span class="status-badge ${currentSettings.anthropicEncrypted ? 'connected' : 'default'}">
-                            ${currentSettings.anthropicEncrypted ? 'Configured' : 'Not Configured'}
+                        <span class="status-badge ${Object.entries(currentSettings.anthropicEncrypted).length > 0 ? 'connected' : 'default'}">
+                            ${Object.entries(currentSettings.anthropicEncrypted).length > 0 ? 'Configured' : 'Not Configured'}
                         </span>
                         <svg class="chevron-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
@@ -349,8 +349,8 @@ function renderSettings(container) {
                         </div>
                     </div>
                     <div class="accordion-controls">
-                        <span class="status-badge ${currentSettings.grokEncrypted ? 'connected' : 'default'}">
-                            ${currentSettings.grokEncrypted ? 'Configured' : 'Not Configured'}
+                        <span class="status-badge ${Object.entries(currentSettings.grokEncrypted).length > 0 ? 'connected' : 'default'}">
+                            ${Object.entries(currentSettings.grokEncrypted).length > 0 ? 'Configured' : 'Not Configured'}
                         </span>
                         <svg class="chevron-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
@@ -499,7 +499,7 @@ function attachEventListeners() {
 			const targetKey = btn.dataset.target;
 			const inputId = btn.dataset.input;
 
-			currentSettings[targetKey] = "";
+			currentSettings[targetKey] = {};
 			const input = document.getElementById(inputId);
 			if (input) {
 				input.value = "";
@@ -670,8 +670,10 @@ export function getSettingsHeaders() {
 	};
 
 	const activeCloudKey = cloudKeyMap[currentSettings.defaultCloudProvider];
-	if (activeCloudKey && currentSettings[activeCloudKey]) {
-		headers['X-Cloud-Api-Key'] = currentSettings[activeCloudKey]; // Use a generic header name
+	if (activeCloudKey && Object.entries(currentSettings[activeCloudKey]).length) {
+		headers['X-Cloud-Api-Key'] = currentSettings[activeCloudKey].ciphertext; // Use a generic header name
+		headers['X-Cloud-Encrypted-Key'] = currentSettings[activeCloudKey].encryptedKey;
+		headers['X-Cloud-IV'] = currentSettings[activeCloudKey].iv;
 	}
 
 	// Attach the active local provider URL

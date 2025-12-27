@@ -1,23 +1,20 @@
-from functools import lru_cache
 import json
 import logging
 import httpx
-from typing import AsyncGenerator, Dict, List
-
-from typing import Optional
-from fastapi import FastAPI, HTTPException, Header, Request
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
-from pydantic import BaseModel, Field
-
-from google import genai
-from google.genai.errors import APIError
-
-from fastapi.middleware.cors import CORSMiddleware
-
-from constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS, LLAMA_SERVER_URL, MODEL_NAME, MODEL_NAME_FOR_SNIPPETS
-
+import utils
 import config
 import ollama
+
+from functools import lru_cache
+from typing import Annotated, AsyncGenerator, Dict, List
+from typing import Optional
+from fastapi import Depends, FastAPI, HTTPException, Header, Request
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from pydantic import BaseModel, Field
+from google import genai
+from google.genai.errors import APIError
+from fastapi.middleware.cors import CORSMiddleware
+from constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS, LLAMA_SERVER_URL
 
 @lru_cache
 def get_settings():
@@ -28,13 +25,6 @@ try:
 except Exception as e:
     logging.error(f"Failed to initialize Ollama client: {e}")
     client = None
-
-try:
-    settings = get_settings()
-    gclient = genai.Client(api_key=settings.GEMINI_API_KEY)
-except Exception as e:
-    logging.error(f"Failed to initialize Gemini client: {e}")
-    gclient = None
 
 app = FastAPI(
     title="Ollama Code Analysis API",
@@ -327,7 +317,23 @@ async def analyze_code_endpoint(request_data: CodeAnalysisRequest, x_local_align
 
 @app.post("/analyze_snippet_gemini", tags=["Analysis"])
 @app.post("/analyze_code_gemini", tags=["Analysis"])
-async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest, x_use_snippet_model: str | None = Header(default=None)):
+async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest, settings: Annotated[config.Settings, Depends(get_settings)] , 
+                                       x_use_snippet_model: str | None = Header(default=None), 
+                                       x_cloud_api_key: str | None = Header(default=None), 
+                                       x_cloud_encrypted_key: str | None = Header(default=None), 
+                                       x_cloud_iv: str | None = Header(default=None)):
+
+    api_key = ""
+    if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv:
+        api_key = utils.decrypt_envelope(x_cloud_encrypted_key, x_cloud_iv, x_cloud_api_key, settings.RSA_PRIVATE_KEY)
+
+    print(api_key)
+
+    try:
+        gclient = genai.Client(api_key=api_key)
+    except Exception as e:
+        logging.error(f"Failed to initialize Gemini client: {e}")
+        gclient = None
 
     isSnippet = True if x_use_snippet_model == 'true' else False
     systemPrompt = SYSTEM_PROMPT_FOR_SNIPPETS if isSnippet else SYSTEM_PROMPT

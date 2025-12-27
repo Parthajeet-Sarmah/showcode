@@ -559,8 +559,6 @@ async function exportFlowToPNG() {
 				clonedSvgContainer.style.height = `${TARGET_HEIGHT}px`;
 
 				//Make all edges and their labels black in colour for better visibility;
-				clonedEdges.querySelectorAll("path").forEach((p) => {
-				});
 				clonedEdges.querySelectorAll("text").forEach((t) => {
 					t.style.fill = '#000'
 				});
