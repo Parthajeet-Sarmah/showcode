@@ -55,11 +55,18 @@ export function initFlow(flowData) {
 	}
 
 	svgLayer.innerHTML = `
-        <defs>
-            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
-            </marker>
-        </defs>
+  			<defs>
+  			  <marker
+  			    id="arrowhead"
+  			    viewBox="0 0 10 10"
+  			    refX="5"
+  			    refY="5"
+  			    markerWidth="6"
+  			    markerHeight="6"
+  			    orient="auto-start-reverse">
+  			    <path d="M 0 0 L 10 5 L 0 10 z" />
+  			  </marker>
+  			</defs>
         <g id="edgeGroup"></g> 
     `;
 
@@ -252,12 +259,29 @@ function drawEdges() {
 		const cp2x = endX + (endConf.dx * controlDist);
 		const cp2y = endY + (endConf.dy * controlDist);
 
+		const midX = 0.125 * startX + 0.375 * cp1x + 0.375 * cp2x + 0.125 * endX;
+		const midY = 0.125 * startY + 0.375 * cp1y + 0.375 * cp2y + 0.125 * endY;
+
 		const path = `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
 
-		return { startX, startY, endX, endY, d: path };
+		return { startX, startY, endX, endY, midX, midY, cp1x, cp1y, cp2x, cp2y, d: path };
 	};
 
-	flowState.edges.forEach(edge => {
+	function getBezierAngle(startX, startY, cp1x, cp1y, cp2x, cp2y, endX, endY) {
+		const t = 0.5; // Midpoint
+		const tx = 3 * Math.pow(1 - t, 2) * (cp1x - startX) +
+			6 * (1 - t) * t * (cp2x - cp1x) +
+			3 * Math.pow(t, 2) * (endX - cp2x);
+
+		const ty = 3 * Math.pow(1 - t, 2) * (cp1y - startY) +
+			6 * (1 - t) * t * (cp2y - cp1y) +
+			3 * Math.pow(t, 2) * (endY - cp2y);
+
+		const radians = Math.atan2(ty, tx);
+		return radians * (180 / Math.PI);
+	}
+
+	flowState.edges.forEach((edge, idx) => {
 		const sNode = flowState.nodes.find(n => n.id === edge.from);
 		const tNode = flowState.nodes.find(n => n.id === edge.to);
 
@@ -267,24 +291,61 @@ function drawEdges() {
 		if (sNode && tNode) {
 			const dot = getDirection(sNode, tNode);
 
-			var startX, startY, endX, endY = 0, d = "";
+			var startX, startY, endX, endY, cp1x, cp1y, cp2x, cp2y, midX, midY = 0, d = "";
 
-			({ startX, startY, endX, endY, d } = setEndpointsForHandle(sNode, tNode, startHandle, endHandle, dot));
+			({ startX, startY, endX, endY, midX, midY, cp1x, cp1y, cp2x, cp2y, d } = setEndpointsForHandle(sNode, tNode, startHandle, endHandle, dot));
 
+			const pathId = `edge-${idx}`;
 			const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 			path.setAttribute("d", d);
+			path.setAttribute("id", pathId);
 			path.setAttribute("class", "connection-path");
-			path.setAttribute("marker-end", "url(#arrowhead)");
+			path.setAttribute("marker-mid", "url(#arrowhead)")
 			edgeGroup.appendChild(path);
 
+			const markerArrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+			markerArrow.setAttribute("d", `M ${midX} ${midY - 5} L ${midX + 10} ${midY} L ${midX} ${midY + 5} z`)
+			markerArrow.setAttribute("fill", "var(--marker-arrow)");
+
+			const angle = getBezierAngle(startX, startY, cp1x, cp1y, cp2x, cp2y, endX, endY);
+			markerArrow.style.transform = `rotate(${angle}deg)`;
+			markerArrow.style.transformOrigin = `${midX}px ${midY}px`;
+
+			edgeGroup.appendChild(markerArrow);
+
 			if (edge.label) {
+				const isBackwards = startX > endX;
+
+				let textPathId = pathId;
+
+				if (isBackwards) {
+					const reversePathId = `edge-rev-${idx}`;
+					const reverseD = `M ${endX} ${endY} C ${cp2x} ${cp2y}, ${cp1x} ${cp1y}, ${startX} ${startY}`;
+
+					const reversePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+					reversePath.setAttribute("d", reverseD);
+					reversePath.setAttribute("id", reversePathId);
+					reversePath.setAttribute("fill", "none");
+					reversePath.setAttribute("stroke", "none"); // Invisible
+					edgeGroup.appendChild(reversePath);
+
+					textPathId = reversePathId;
+				}
+
 				const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-				text.setAttribute("x", (startX + endX) / 2);
-				text.setAttribute("y", (startY + endY) / 2 - 5);
-				text.setAttribute("text-anchor", "middle");
+				text.setAttribute("dy", "-10"); // Lift text above line
 				text.setAttribute("fill", "#64748b");
-				text.setAttribute("font-size", "11");
-				text.textContent = edge.label;
+				text.setAttribute("font-size", "12");
+				text.style.pointerEvents = "none";
+
+				const textPath = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+				textPath.setAttribute("href", `#${textPathId}`); // Link to (possibly reversed) path
+				textPath.setAttribute("startOffset", "50%");
+				textPath.setAttribute("text-anchor", "middle");
+				textPath.textContent = edge.label;
+				textPath.style.backgroundColor = 'red';
+
+				text.appendChild(textPath);
 				edgeGroup.appendChild(text);
 			}
 		}
@@ -652,10 +713,6 @@ async function exportFlowToPNG() {
 					t.style.fill = '#000'
 				});
 
-				// Calculate Transform: Move to (0,0) -> Scale -> Center in 4K
-				// translate(offsetX, offsetY) centers the scaled content in the 4K frame
-				// scale(fitScale) resizes the content
-				// translate(-minX, -minY) moves the top-left of the content to the origin (0,0)
 				const transform = `translate(${offsetX}px, ${offsetY}px) scale(${fitScale}) translate(${-minX}px, ${-minY}px)`;
 
 				clonedNodes.style.transformOrigin = '0 0';
