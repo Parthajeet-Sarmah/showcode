@@ -10,7 +10,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./rsa_public_key.pem:/app/rsa_public_key.pem
+      - ./rsa_public.pem:/app/rsa_public.pem
     networks:
       - app-network
     labels:

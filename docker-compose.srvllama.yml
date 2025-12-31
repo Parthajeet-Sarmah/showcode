@@ -1,0 +1,21 @@
+services:
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: srvllama
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./models:/models"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  app-network:
+    external: true

@@ -18,7 +18,7 @@ from openai import OpenAI, APIError
 from anthropic import Anthropic, APIError as AnthropicAPIError
 
 from fastapi.middleware.cors import CORSMiddleware
-from constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS, LLAMA_SERVER_URL
+from constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS
 
 @lru_cache
 def get_settings():
@@ -30,8 +30,6 @@ try:
 except Exception as e:
     logging.error(f"Failed to initialize Ollama client: {e}")
     client = None
-
-print(client)
 
 app = FastAPI(
     title="Ollama Code Analysis API",
@@ -90,7 +88,7 @@ async def proxy_via_headers(request: Request):
 
 
 @app.post("/analyze_code_srvllama", tags=["Analysis"])
-async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest, x_local_alignment_model: str | None = Header(default=None)):
+async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest, settings: Annotated[config.Settings, Depends(get_settings)], x_local_alignment_model: str | None = Header(default=None)):
 
     if not x_local_alignment_model:
         raise HTTPException(
@@ -118,7 +116,7 @@ async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest, 
         async with httpx.AsyncClient(timeout=None) as client:
             try:
                 async with client.stream(
-                    "POST", LLAMA_SERVER_URL, json=payload
+                    "POST", settings.LLAMA_SERVER_URL, json=payload
                 ) as response:
 
                     if response.status_code != 200:
@@ -160,7 +158,7 @@ async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest, 
 
 
 @app.post("/analyze_snippet_srvllama", tags=["Analysis"])
-async def analyze_snippet_llama_server_endpoint(request_data: CodeAnalysisRequest, x_local_snippet_model: str | None = Header(default=None)):
+async def analyze_snippet_llama_server_endpoint(request_data: CodeAnalysisRequest, settings: Annotated[config.Settings, Depends(get_settings)], x_local_snippet_model: str | None = Header(default=None)):
 
     if not x_local_snippet_model:
         raise HTTPException(
@@ -187,7 +185,7 @@ async def analyze_snippet_llama_server_endpoint(request_data: CodeAnalysisReques
         async with httpx.AsyncClient(timeout=None) as client:
             try:
                 async with client.stream(
-                    "POST", LLAMA_SERVER_URL, json=payload
+                    "POST", settings.LLAMA_SERVER_URL, json=payload
                 ) as response:
 
                     if response.status_code != 200:
