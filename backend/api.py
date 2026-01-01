@@ -1,16 +1,14 @@
-import json
 import logging
-import httpx
 from backend.generators import anthtropic_stream
 import backend.utils as utils
 import backend.config as config
 import ollama
 
 from functools import lru_cache
-from typing import Annotated, AsyncGenerator, Dict, List
+from typing import Annotated, Any, AsyncGenerator, Callable, Dict, List, Union
 from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, Header, Request
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from backend.dependencies import get_llama_streamer, get_ollama_streamer
@@ -27,12 +25,18 @@ from backend.constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS
 def get_settings():
     return config.Settings()
 
-try:
-    settings = get_settings()
-    client = ollama.AsyncClient(host=settings.OLLAMA_HOST)
-except Exception as e:
-    logging.error(f"Failed to initialize Ollama client: {e}")
-    client = None
+client = None
+settings = get_settings()
+
+async def init_ollama_client(url: str):
+    try:
+        client = ollama.AsyncClient(host=url)
+        await client.list()
+        return client
+    except Exception as e:
+        logging.error(f"Failed to initialize Ollama client: {e}")
+        client = None
+        return client
 
 app = FastAPI(
     title="Ollama Code Analysis API",
@@ -72,103 +76,20 @@ class APIKey(BaseModel):
 class APIKeyPayload(BaseModel):
     data: Dict[str, List[APIKey]]
 
-@app.post("/analyze", tags=["Proxy Route"])
-async def proxy_via_headers(request: Request):
-
-    useLocalProvider = True if request.headers["x-use-local-provider"] == 'true' else False
-    useSnippetModel = True if request.headers["x-use-snippet-model"] == 'true' else False
-    defaultLocalProvider = request.headers["x-default-local-provider"]
-    defaultCloudProvider = request.headers["x-default-cloud-provider"]
-
-    if useLocalProvider and useSnippetModel:
-        return RedirectResponse(f"/analyze_snippet_{defaultLocalProvider}")
-    elif useLocalProvider and not useSnippetModel:
-        return RedirectResponse(f"/analyze_code_{defaultLocalProvider}")
-    elif not useLocalProvider and useSnippetModel:
-        return RedirectResponse(f"/analyze_snippet_{defaultCloudProvider}")
-    elif not useLocalProvider and not useSnippetModel:
-        return RedirectResponse(f"/analyze_code_{defaultCloudProvider}")
-
-
-@app.post("/analyze_code_srvllama", tags=["Analysis"])
-async def analyze_code_endpoint_llama_server(request_data: CodeAnalysisRequest, settings: Annotated[config.Settings, Depends(get_settings)], x_local_alignment_model: str | None = Header(default=None)):
-
-    if not x_local_alignment_model:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid model name"
-        )
-
-    user_content = f"CODE SNIPPET:\n---\n{request_data.code}\n---"
-    if request_data.context:
-        user_content += f"\nADDITIONAL CONTEXT:\n---\n{request_data.context}\n---"
-
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_content},
-    ]
-
-    payload = {
-        "model": x_local_alignment_model,
-        "messages": messages,
-        "stream": True,
-        "temperature": 0.5,
-    }
-
-    async def generate_stream() -> AsyncGenerator[str, None]:
-        async with httpx.AsyncClient(timeout=None) as client:
-            try:
-                async with client.stream(
-                    "POST", settings.LLAMA_SERVER_URL, json=payload
-                ) as response:
-
-                    if response.status_code != 200:
-                        error_msg = await response.aread()
-                        logging.error(f"Llama Server Error: {error_msg.decode()}")
-                        raise HTTPException(
-                            status_code=response.status_code,
-                            detail=f"Llama server returned error: {response.status_code}",
-                        )
-
-                    async for line in response.aiter_lines():
-                        if line.startswith("data: "):
-                            data_str = line[6:]  
-
-                            if data_str.strip() == "[DONE]":
-                                break
-
-                            try:
-                                data_json = json.loads(data_str)
-                                delta = data_json.get("choices", [{}])[0].get(
-                                    "delta", {}
-                                )
-                                content = delta.get("content", "")
-
-                                if content:
-                                    yield content
-                            except json.JSONDecodeError:
-                                logging.warning(f"Failed to parse JSON line: {line}")
-                                continue
-
-            except httpx.ConnectError:
-                yield "\n[SERVER_ERROR] Could not connect to llama-server at localhost:8080. Is it running?"
-            except Exception as e:
-                logging.error(f"An unexpected error occurred: {e}")
-                yield f"\n[SERVER_ERROR] An unexpected error occurred: {str(e)}"
-
-    return StreamingResponse(generate_stream(), media_type="text/plain")
-
-
-@app.post("/analyze_snippet_srvllama", tags=["Analysis"])
-async def analyze_snippet_llama_server_endpoint(
+async def analyze_codesnippet_endpoint_llama_server(
     request_data: CodeAnalysisRequest,
-    settings: Annotated[config.Settings, Depends(get_settings)],
-    llama_streamer = Depends(get_llama_streamer),
-    x_local_snippet_model: str | None = Header(default=None),
+    x_local_url: str | None,
+    x_use_snippet_model: bool | None,
+    x_local_snippet_model: str | None,
+    x_local_alignment_model: str | None,
+    llama_streamer = Callable[
+        [str, dict[Any, Any]],  
+        AsyncGenerator[str, None]
+    ],
 ):
 
-    if not x_local_snippet_model:
-        raise HTTPException(status_code=400, detail="Invalid model name")
+    if not (x_local_snippet_model and x_use_snippet_model and x_local_alignment_model and x_local_url):
+        raise HTTPException(status_code=400, detail="Incomplete headers")
 
     payload = {
         "model": x_local_snippet_model,
@@ -181,13 +102,37 @@ async def analyze_snippet_llama_server_endpoint(
     }
 
     async def generate_stream() -> AsyncGenerator[str, None]:
-        async for chunk in llama_streamer(settings.LLAMA_SERVER_URL, payload):
+        async for chunk in llama_streamer(x_local_url, payload):
             yield chunk
 
     return StreamingResponse(generate_stream(), media_type="text/plain")
 
-@app.post("/analyze_snippet_ollama", tags=["Analysis"])
-async def analyze_snippet_endpoint(request_data: CodeAnalysisRequest, ollama_streamer = Depends(get_ollama_streamer), x_local_snippet_model: str | None = Header(default=None)):
+
+async def analyze_codesnippet_endpoint_ollama(
+    request_data: CodeAnalysisRequest,
+    x_local_url: str | None,
+    x_use_snippet_model: bool | None,
+    x_local_snippet_model: str | None,
+    x_local_alignment_model: str | None,
+    ollama_streamer: Callable[
+        [ollama.AsyncClient | None, str, str],  
+        AsyncGenerator[str, None]
+    ],
+):
+
+    if not (x_local_url and x_use_snippet_model != None and x_local_alignment_model and x_local_snippet_model):
+        raise HTTPException(
+            status_code=400,
+            detail="One or more invalid headers!"
+        )
+
+    try:
+        client = await init_ollama_client(x_local_url)
+    except Exception as e:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Ollama client error: {e}"
+        )
 
     model = x_local_snippet_model
 
@@ -203,79 +148,43 @@ async def analyze_snippet_endpoint(request_data: CodeAnalysisRequest, ollama_str
             detail="Ollama client is not initialized. Ensure Ollama is running and accessible.",
         )
 
+    model_dict = await client.list()
+    model_list = model_dict.get("models")
+
+    model_list = [ m["name"] for m in model_list ]
+
+    if model not in model_list:
+        raise HTTPException(
+            status_code=404,
+            detail="Unavailable model"
+        )
+
     full_prompt = f"{request_data.code}"
     
     async def generate_stream() -> AsyncGenerator[str, None]:
-         async for chunk in ollama_streamer(client, full_prompt, model):
+         async for chunk in ollama_streamer(client, full_prompt, x_local_snippet_model if x_use_snippet_model else x_local_alignment_model):
             yield chunk
 
     return StreamingResponse(
         generate_stream(), media_type="text/plain" 
     )
 
-
-@app.post("/analyze_code_ollama", tags=["Analysis"])
-async def analyze_code_endpoint(request_data: CodeAnalysisRequest, x_local_alignment_model: str | None = Header(default=None)):
-
-    if not x_local_alignment_model:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid model name"
-        )
-
-
-    if client is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Ollama client is not initialized. Ensure Ollama is running and accessible.",
-        )
-
-    full_prompt = f"{request_data.code}"
-    
-    async def generate_stream() -> AsyncGenerator[str, None]:
-        try:
-            if client is None:
-                raise HTTPException(
-                    status_code=503,
-                    detail="Ollama service is unavailable.",
-                )
-            
-            stream = await client.generate(
-                model=x_local_alignment_model, 
-                prompt=full_prompt, 
-                system=SYSTEM_PROMPT, 
-                stream=True
-            )
-
-            async for chunk in stream:
-                response_text = chunk.get("response", "")
-                if response_text:
-                    yield response_text
-                    
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
-            yield f"\n[SERVER_ERROR] An unexpected error occurred: {e}"
-
-    return StreamingResponse(
-        generate_stream(), media_type="text/plain" 
-    )
-
-
-@app.post("/analyze_snippet_gemini", tags=["Analysis"])
-@app.post("/analyze_code_gemini", tags=["Analysis"])
-async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest, settings: Annotated[config.Settings, Depends(get_settings)] , 
-                                       x_use_snippet_model: str | None = Header(default=None), 
-                                       x_cloud_api_key: str | None = Header(default=None), 
-                                       x_cloud_encrypted_key: str | None = Header(default=None), 
-                                       x_cloud_iv: str | None = Header(default=None)):
+async def analyze_codesnippet_endpoint_gemini(
+    request_data: CodeAnalysisRequest, 
+    x_use_snippet_model: bool | None,
+    x_cloud_api_key: str | None,
+    x_cloud_encrypted_key: str | None,
+    x_cloud_iv: str | None,
+):
 
     api_key = ""
-    if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv and x_use_snippet_model:
+
+    if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv and x_use_snippet_model != None:
         api_key = utils.decrypt_envelope(x_cloud_encrypted_key, x_cloud_iv, x_cloud_api_key, settings.RSA_PRIVATE_KEY)
     else:
         raise HTTPException(
             status_code=400,
-            detail="Headers missing",
+            detail="Incomplete headers",
         )
 
     try:
@@ -303,12 +212,6 @@ async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest, settin
         user_content = f"\n{request_data.code}\n"
 
     async def generate_stream() -> AsyncGenerator[str, None]:
-        if gclient is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Gemini client is not initialized. Ensure GEMINI_API_KEY is set.",
-            )
-
         try:
             stream = gclient.models.generate_content_stream(
                 model="gemini-2.5-flash",
@@ -331,13 +234,13 @@ async def analyze_code_endpoint_gemini(request_data: CodeAnalysisRequest, settin
 
     return StreamingResponse(generate_stream(), media_type="text/plain")
 
-@app.post("/analyze_snippet_openai", tags=["Analysis"])
-@app.post("/analyze_code_openai", tags=["Analysis"])
-async def analyze_code_endpoint_chatgpt(request_data: CodeAnalysisRequest, settings: Annotated[config.Settings, Depends(get_settings)], 
-                                        x_use_snippet_model: str | None = Header(default=None), 
-                                        x_cloud_api_key: str | None = Header(default=None), 
-                                        x_cloud_encrypted_key: str | None = Header(default=None), 
-                                        x_cloud_iv: str | None = Header(default=None)):
+async def analyze_codesnippet_endpoint_chatgpt(
+    request_data: CodeAnalysisRequest, 
+    x_use_snippet_model: bool | None,
+    x_cloud_api_key: str | None,
+    x_cloud_encrypted_key: str | None,
+    x_cloud_iv: str | None,
+):
 
     api_key = ""
     if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv:
@@ -392,13 +295,14 @@ async def analyze_code_endpoint_chatgpt(request_data: CodeAnalysisRequest, setti
 
     return StreamingResponse(generate_stream(), media_type="text/plain")
 
-@app.post("/analyze_snippet_grok", tags=["Analysis"])
-@app.post("/analyze_code_grok", tags=["Analysis"])
-async def analyze_code_endpoint_grok(request_data: CodeAnalysisRequest, settings: Annotated[config.Settings, Depends(get_settings)], 
-                                     x_use_snippet_model: str | None = Header(default=None), 
-                                     x_cloud_api_key: str | None = Header(default=None), 
-                                     x_cloud_encrypted_key: str | None = Header(default=None), 
-                                     x_cloud_iv: str | None = Header(default=None)):
+
+async def analyze_codesnippet_endpoint_grok(
+    request_data: CodeAnalysisRequest, 
+    x_use_snippet_model: bool | None,
+    x_cloud_api_key: str | None,
+    x_cloud_encrypted_key: str | None,
+    x_cloud_iv: str | None,
+):
 
     api_key = ""
     if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv:
@@ -455,13 +359,14 @@ async def analyze_code_endpoint_grok(request_data: CodeAnalysisRequest, settings
 
     return StreamingResponse(generate_stream(), media_type="text/plain")
 
-@app.post("/analyze_snippet_anthropic", tags=["Analysis"])
-@app.post("/analyze_code_anthropic", tags=["Analysis"])
-async def analyze_code_endpoint_claude(request_data: CodeAnalysisRequest, settings: Annotated[config.Settings, Depends(get_settings)], 
-                                       x_use_snippet_model: str | None = Header(default=None), 
-                                       x_cloud_api_key: str | None = Header(default=None), 
-                                       x_cloud_encrypted_key: str | None = Header(default=None), 
-                                       x_cloud_iv: str | None = Header(default=None)):
+
+async def analyze_codesnippet_endpoint_claude(
+    request_data: CodeAnalysisRequest, 
+    x_use_snippet_model: bool | None,
+    x_cloud_api_key: str | None,
+    x_cloud_encrypted_key: str | None,
+    x_cloud_iv: str | None,
+):
 
     api_key = ""
     if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv:
@@ -494,6 +399,75 @@ async def analyze_code_endpoint_claude(request_data: CodeAnalysisRequest, settin
             yield chunk
 
     return StreamingResponse(generate_stream(), media_type="text/plain")
+
+REQUEST_MAP = {
+    "analyze_codesnippet_srvllama": lambda a,b,c,d,e,f : analyze_codesnippet_endpoint_llama_server(a,b,c,d,e,f),
+    "analyze_codesnippet_ollama": lambda a,b,c,d,e,f : analyze_codesnippet_endpoint_ollama(a,b,c,d,e,f),
+    "analyze_codesnippet_gemini": lambda a,b,c,d,e : analyze_codesnippet_endpoint_gemini(a, b, c, d, e),
+    "analyze_codesnippet_grok": lambda a,b,c,d,e : analyze_codesnippet_endpoint_grok(a,b,c,d,e),
+    "analyze_codesnippet_claude": lambda a,b,c,d,e : analyze_codesnippet_endpoint_claude(a,b,c,d,e),
+    "analyze_codesnippet_openai": lambda a,b,c,d,e : analyze_codesnippet_endpoint_chatgpt(a,b,c,d,e),
+}
+
+@app.post("/analyze", tags=["Proxy Route"])
+async def analyze(
+    request: Request,
+    request_data: CodeAnalysisRequest,
+    x_use_local_provider: Annotated[Union[str, None], Header()] = None,
+    x_use_snippet_model: Annotated[Union[str, None], Header()] = None,
+    x_default_local_provider: Annotated[Union[str, None], Header()] = None,
+    x_default_cloud_provider: Annotated[Union[str, None], Header()] = None,
+    x_local_url: Annotated[Union[str, None], Header()] = None,
+    x_local_snippet_model: Annotated[Union[str, None], Header()] = None,
+    x_local_alignment_model: Annotated[Union[str, None], Header()] = None,
+    x_cloud_api_key: Annotated[Union[str, None], Header()] = None,
+    x_cloud_encrypted_key: Annotated[Union[str, None], Header()] = None,
+    x_cloud_iv: Annotated[Union[str, None], Header()] = None,
+):
+
+    if not (x_use_local_provider and x_use_snippet_model and
+            x_default_cloud_provider and x_default_local_provider and
+            x_local_alignment_model and x_local_snippet_model):
+        raise HTTPException(
+            status_code=400,
+            detail="Incomplete headers"
+        )
+
+    useLocalProvider = True if x_use_local_provider == 'true' else False if x_use_local_provider == 'false' else None
+    useSnippetModel = True if x_use_snippet_model == 'true' else False if x_use_local_provider == 'false' else None
+
+    defaultLocalProvider = x_default_local_provider
+    defaultCloudProvider = x_default_cloud_provider
+
+    localUrl = x_local_url
+    localSnippetModel = x_local_snippet_model
+    localAlignmentModel = x_local_alignment_model
+
+    cloudAPIKey = x_cloud_api_key if x_cloud_api_key else None
+    cloudEncrpytedKey = x_cloud_encrypted_key if x_cloud_encrypted_key else None
+    cloudIV = x_cloud_iv if x_cloud_iv else None
+
+    streamer = get_ollama_streamer() if defaultLocalProvider == "ollama" else get_llama_streamer()
+
+    if useLocalProvider:
+        return await REQUEST_MAP[f"analyze_codesnippet_{defaultLocalProvider}"](
+                request_data, 
+                localUrl, 
+                useSnippetModel, 
+                localSnippetModel, 
+                localAlignmentModel,
+                streamer
+            )
+    else:
+        return await REQUEST_MAP[f"analyze_codesnippet_{defaultCloudProvider}"](
+                request_data,
+                useSnippetModel, 
+                cloudAPIKey, 
+                cloudEncrpytedKey,
+                cloudIV
+            )
+
+
 
 @app.get("/.well-known/rsa-key", tags=["RSA public key"])
 async def get_rsa_public_key():

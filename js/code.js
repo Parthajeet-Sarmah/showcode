@@ -1,6 +1,6 @@
 import { getSettingsHeaders } from "./settings.js"
 
-const proxyUrl = 'http://127.0.0.1:8000/analyze';
+const proxyUrl = 'http://127.0.0.1:9090/analyze';
 
 export async function callCodeAnalysisApi(codeSnippet, outputEle, firstTokenGeneratedErrands = () => { }, context = null) {
 

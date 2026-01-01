@@ -36,14 +36,21 @@ def test_analyze_codesnippet_streaming_success(mock_gemini_client, mock_decrypt)
     }
 
     headers = {
+        "x-local-alignment-model": "test-model",
+        "x-local-snippet-model": "test-model",
+        "x-local-url": "http://test.com",
         "x-use-snippet-model": "false",
+        "x-use-local-provider": "false",
+        "x-local-snippet-model": "test-model",
+        "x-default-local-provider": "ollama",
+        "x-default-cloud-provider": "gemini",
         "x-cloud-api-key": "encrypted",
         "x-cloud-encrypted-key": "encrypted",
         "x-cloud-iv": "iv",
     }
 
     response = client.post(
-        "/analyze_snippet_gemini",
+        "/analyze",
         json=payload,
         headers=headers,
     )
@@ -54,77 +61,61 @@ def test_analyze_codesnippet_streaming_success(mock_gemini_client, mock_decrypt)
     assert streamed_text == "hello world "
 
 
+#util
+def post_with_no_x_header(header_name: str, json: dict[str, str]):
+    headers = {
+        "x-local-alignment-model": "test-model",
+        "x-local-snippet-model": "test-model",
+        "x-local-url": "http://test.com",
+        "x-local-url": "http://test.com",
+        "x-use-snippet-model": "false",
+        "x-use-local-provider": "false",
+        "x-local-snippet-model": "test-model",
+        "x-default-local-provider": "ollama",
+        "x-default-cloud-provider": "gemini",
+        "x-cloud-api-key": "encrypted",
+        "x-cloud-encrypted-key": "encrypted",
+        "x-cloud-iv": "iv",
+    }
+    
+    if header_name in headers.keys():
+        del headers[header_name]
+
+    return client.post("/analyze", headers=headers, json=json)
+
 def test_analyze_codesnippet_incomplete_headers(mock_gemini_client, mock_decrypt):
     payload = {
         "code": "print('hello')",
         "context": "simple test"
     }
 
-    headers = {
-        "x-use-snippet-model": "false",
-        "x-cloud-api-key": "encrypted",
-        "x-cloud-encrypted-key": "encrypted",
-    }
+    responses = [
+        post_with_no_x_header("x-cloud-api-key", payload),
+        post_with_no_x_header("x-cloud-encrypted-key", payload),
+        post_with_no_x_header("x-cloud-iv", payload),
+    ]
 
-    response = client.post(
-        "/analyze_snippet_gemini",
-        json=payload,
-        headers=headers,
-    )
-
-    assert response.status_code == 400
-
-    headers = {
-        "x-cloud-api-key": "encrypted",
-        "x-cloud-encrypted-key": "encrypted",
-        "x-cloud-iv": "iv",
-    }
-
-    response = client.post(
-        "/analyze_snippet_gemini",
-        json=payload,
-        headers=headers,
-    )
-
-    assert response.status_code == 400
-
-    headers = {
-        "x-use-snippet-model": "false",
-        "x-cloud-encrypted-key": "encrypted",
-        "x-cloud-iv": "iv",
-    }
-
-    response = client.post(
-        "/analyze_snippet_gemini",
-        json=payload,
-        headers=headers,
-    )
-
-    assert response.status_code == 400
-
-    headers = {
-        "x-use-snippet-model": "false",
-        "x-cloud-api-key": "encrypted",
-        "x-cloud-iv": "iv",
-    }
-
-    response = client.post(
-        "/analyze_snippet_gemini",
-        json=payload,
-        headers=headers,
-    )
-
-    assert response.status_code == 400
+    for res in responses:
+        assert res.status_code == 400
+        assert res.json()["detail"] == "Incomplete headers"
 
 def test_gemini_client_init_failure():
     with mock.patch("backend.api.genai.Client", side_effect=Exception("boom")):
         payload = {"code": "print('x')"}
 
         response = client.post(
-            "/analyze_snippet_gemini",
+            "/analyze",
             json=payload,
-            headers={
+            headers = {
+                "x-local-alignment-model": "test-model",
+                "x-local-snippet-model": "test-model",
+                "x-local-url": "http://test.com",
+                "x-local-url": "http://test.com",
                 "x-use-snippet-model": "false",
+                "x-use-local-provider": "false",
+                "x-local-snippet-model": "test-model",
+                "x-default-local-provider": "ollama",
+                "x-default-cloud-provider": "gemini",
                 "x-cloud-api-key": "encrypted",
                 "x-cloud-encrypted-key": "encrypted",
                 "x-cloud-iv": "iv",
@@ -132,4 +123,4 @@ def test_gemini_client_init_failure():
         )
 
         assert response.status_code == 503
-        assert "Gemini client is not initialized" in response.text
+        assert "Gemini client is not initialized" in response.json()["detail"]
