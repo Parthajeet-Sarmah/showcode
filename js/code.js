@@ -1,8 +1,9 @@
 import { getSettingsHeaders } from "./settings.js"
+import { API_BASE_URL } from "./config.js";
 
-const proxyUrl = 'http://127.0.0.1:9090/analyze';
+const proxyUrl = `${API_BASE_URL}/analyze`;
 
-export async function callCodeAnalysisApi(codeSnippet, outputEle, firstTokenGeneratedErrands = () => { }, context = null) {
+export async function callCodeAnalysisApi(codeSnippet, outputEle, firstTokenGeneratedErrands = () => { }, context = null, signature = null) {
 
 	var score = 0;
 	let isFirstTokenGenerated = false;
@@ -16,14 +17,20 @@ export async function callCodeAnalysisApi(codeSnippet, outputEle, firstTokenGene
 
 	const settingsHeaders = getSettingsHeaders()
 
+	const headers = {
+		'Content-Type': 'application/json',
+		'X-Use-Snippet-Model': false,
+		...settingsHeaders,
+	};
+
+	if (signature) {
+		headers['X-Snippet-Signature'] = signature;
+	}
+
 	try {
 		const response = await fetch(proxyUrl, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-Use-Snippet-Model': false,
-				...settingsHeaders,
-			},
+			headers: headers,
 			body: JSON.stringify(data),
 		});
 
@@ -165,5 +172,3 @@ export async function callSnippetAnalysisApi(codeSnippet, outputEle, firstTokenG
 		throw error;
 	}
 }
-
-

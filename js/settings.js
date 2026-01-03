@@ -1,3 +1,4 @@
+import { API_BASE_URL } from './config.js';
 import { encryptWithPublicKey } from './encryption.js';
 
 const SETTINGS_KEY = 'showcode_app_settings';
@@ -177,7 +178,7 @@ function renderSettings(container) {
                         <p class="settings-helper-text">
                              <b>For Cloud Users</b>
 														 <br>
-														 Download a <code>.pem</code> file containing the RSA public key from <code style="padding: 0px 6px; border-radius: 2px; background-color: #f1f5f9"><a target="_blank" href="http://localhost:8000/.well-known/rsa-key">https://localhost:8000/.well-known/rsa-key</a> (Last Rotation on: 2025/12/25 11:19 A.M. UTC)</code>. This key is used to encrypt all Cloud Provider API keys before they are stored.
+														 Download a <code>.pem</code> file containing the RSA public key from <code style="padding: 0px 6px; border-radius: 2px; background-color: #f1f5f9"><a target="_blank" href="${API_BASE_URL}/.well-known/rsa-key">${API_BASE_URL}/.well-known/rsa-key</a> (Last Rotation on: 2025/12/25 11:19 A.M. UTC)</code>. This key is used to encrypt all Cloud Provider API keys before they are stored.
 														 <br>
 														 <br>
 														 <b>For Self-Hosted Users</b>

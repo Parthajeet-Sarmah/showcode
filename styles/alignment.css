@@ -1,4 +1,3 @@
-
 .alignment-accordion-item {
 	background: var(--card-bg);
 	border: 1px solid var(--border);
@@ -153,9 +152,14 @@
 
 
 .alignment-industry-score {
-	height: 15px;
-	width: 15px;
-	border-radius: 50%;
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 0.7rem;
+	font-weight: bold;
+	color: white;
+	text-transform: uppercase;
+	min-width: 70px;
+	text-align: center;
 }
 
 .alignment-block-title {
@@ -266,4 +270,48 @@
 	padding: 15px;
 	border-radius: 6px;
 	overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+    .alignment-accordion-header {
+        padding: 15px;
+    }
+    
+    .alignment-header-title-container {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .alignment-mean-industry-score {
+        text-align: left;
+        font-size: 0.9rem;
+    }
+    
+    .alignment-inner-header {
+        height: auto;
+        padding: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .alignment-snippet-block-container {
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 8px;
+    }
+    
+    .alignment-block-title {
+        width: 100%;
+        margin-bottom: 2px;
+    }
+    
+    .alignment-industry-score {
+        margin-top: 2px;
+    }
+    
+    .alignment-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
 }

@@ -13,7 +13,7 @@ let dragOffsets = new Map();
 let isPanning = false;
 let viewX = 0;
 let viewY = 0;
-let scale = 1;
+let scale = window.innerWidth < 768 ? 0.6 : 1;
 let panStartX = 0;
 let panStartY = 0;
 

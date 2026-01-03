@@ -25,7 +25,9 @@ export function renderOverview(container, dataArray) {
                 </div>
             </div>
             <div class="accordion-content">
-                <div class="snippets-track"></div>
+								<div class="accordion-inner">
+		                <div class="snippets-track"></div>
+								</div>
             </div>
         `;
 

@@ -7,15 +7,15 @@ from typing import AsyncGenerator
 from fastapi import HTTPException
 from ollama import AsyncClient
 
-from backend.constants import SYSTEM_PROMPT_FOR_SNIPPETS
+from backend.constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS
 
 async def llama_stream(
     url: str,
     payload: dict,
 ) -> AsyncGenerator[str, None]:
-    async with httpx.AsyncClient(timeout=None) as client:
-        async with client.stream("POST", url, json=payload) as response:
-            try:
+    try:
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream("POST", url, json=payload) as response:
                 if response.status_code != 200:
                     error_msg = await response.aread()
                     logging.error(f"Llama Server Error: {error_msg.decode()}")
@@ -37,15 +37,16 @@ async def llama_stream(
                     content = delta.get("content", "")
                     if content:
                         yield content
-            except Exception as e:
-                logging.error(f"An unexpected error occurred: {e}")
-                yield f"\n[SERVER_ERROR] An unexpected error occurred: {e}"
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        yield f"\n[SERVER_ERROR] An unexpected error occurred: {e}"
 
 
 async def ollama_stream(
     client: AsyncClient | None,
     full_prompt: str,
     model: str,
+    use_snippet: bool | None,
 ) -> AsyncGenerator[str, None]:
         try:
             if client is None:
@@ -53,10 +54,19 @@ async def ollama_stream(
                     status_code=503,
                     detail="Ollama service is unavailable.",
                 )
+
+            if use_snippet == None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Use snippet boolean is inactive"
+                )
+
+            system = SYSTEM_PROMPT_FOR_SNIPPETS if use_snippet else SYSTEM_PROMPT
+
             stream = await client.generate(
-                model=model, 
-                prompt=full_prompt, 
-                system=SYSTEM_PROMPT_FOR_SNIPPETS, 
+                model=model,
+                prompt=full_prompt,
+                system=system,
                 stream=True
             )
 
@@ -87,4 +97,3 @@ async def anthtropic_stream(client: Anthropic, systemPrompt: str, user_content: 
     except Exception as e:
         logging.error(f"An unexpected server error occurred: {e}")
         yield f"\n[SERVER_ERROR] An unexpected error occurred: {e}"
-

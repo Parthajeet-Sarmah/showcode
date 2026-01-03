@@ -1,10 +1,5 @@
-from fastapi.testclient import TestClient
+import pytest
 from unittest.mock import patch
-
-from backend.api import app  # adjust import
-
-client = TestClient(app)
-
 
 class FakeStreamResponse:
     status_code = 200
@@ -37,60 +32,45 @@ class FakeAsyncClient:
     def stream(self, method, url, json):
         return FakeStreamResponse()
 
-def test_analyze_code_srvllama_streaming_success():
+def test_analyze_code_srvllama_streaming_success(client, base_headers, base_payload):
+    headers = base_headers.copy()
+    headers.update({
+        "x-use-local-provider": "true",
+        "x-use-snippet-model": "true",
+        "x-default-local-provider": "srvllama",
+        "x-local-snippet-model": "test-model",
+    })
+
     with patch("backend.generators.httpx.AsyncClient", FakeAsyncClient):
         response = client.post(
             "/analyze",
-            headers={
-                "x-local-alignment-model": "test-model",
-                "x-local-url": "http://test.com",
-                "x-use-snippet-model": "true",
-                "x-use-local-provider": "true",
-                "x-local-snippet-model": "test-model",
-                "x-default-local-provider": "srvllama",
-                "x-default-cloud-provider": "gemini",
-            },
-            json={
-                "code": "print('hi')",
-                "context": "test context",
-            },
+            headers=headers,
+            json=base_payload,
         )
 
         assert response.status_code == 200
-
         chunks = list(response.iter_text())
         assert "".join(chunks) == "hello world" 
 
-def post_with_no_x_header(header_name: str, json: dict[str, str]):
-    headers={
-        "x-local-alignment-model": "test-model",
-        "x-local-url": "http://test.com",
-        "x-use-snippet-model": "true",
+def test_analyze_code_srvllama_incomplete_header(client, base_headers, base_payload):
+    # Base headers for srvllama
+    base_srv_headers = base_headers.copy()
+    base_srv_headers.update({
         "x-use-local-provider": "true",
-        "x-local-snippet-model": "test-model",
+        "x-use-snippet-model": "true",
         "x-default-local-provider": "srvllama",
-        "x-default-cloud-provider": "gemini",
-    }
-    
-    if header_name in headers.keys():
-        del headers[header_name]
+    })
 
-    return client.post("/analyze", headers=headers, json=json)
+    headers_to_check = ["x-local-alignment-model", "x-local-url", "x-use-snippet-model", "x-local-snippet-model"]
 
-def test_analyze_code_srvllama_incomplete_header():
-    json = {
-      "code": "print('hi')",
-      "context": "test context",
-    }
+    def post_missing(header_name):
+        h = base_srv_headers.copy()
+        if header_name in h:
+            del h[header_name]
+        return client.post("/analyze", headers=h, json=base_payload)
 
     with patch("backend.generators.httpx.AsyncClient", FakeAsyncClient):
-        responses = [
-            post_with_no_x_header("x-local-alignment-model", json),
-            post_with_no_x_header("x-local-url", json),
-            post_with_no_x_header("x-use-snippet-model", json),
-            post_with_no_x_header("x-local-snippet-model", json),
-        ]
-
-        for res in responses:
+        for header in headers_to_check:
+            res = post_missing(header)
             assert res.status_code == 400
             assert res.json()["detail"] == "Incomplete headers"

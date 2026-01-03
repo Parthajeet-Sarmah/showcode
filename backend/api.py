@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from backend.dependencies import get_llama_streamer, get_ollama_streamer
+from backend.database import init_db, save_alignment, get_all_alignments
 
 from google import genai
 from google.genai.errors import APIError
@@ -21,12 +22,22 @@ from anthropic import Anthropic
 from fastapi.middleware.cors import CORSMiddleware
 from backend.constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 @lru_cache
 def get_settings():
     return config.Settings()
 
 client = None
 settings = get_settings()
+
+# Initialize DB
+init_db()
+
+# Initialize Limiter
+limiter = Limiter(key_func=get_remote_address)
 
 async def init_ollama_client(url: str):
     try:
@@ -43,6 +54,10 @@ app = FastAPI(
     description="An API endpoint to analyze code snippets using the Ollama LLM.",
     version="1.0.0",
 )
+
+# Register Limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 origins = [
     "http://localhost:5500",
@@ -115,11 +130,12 @@ async def analyze_codesnippet_endpoint_ollama(
     x_local_snippet_model: str | None,
     x_local_alignment_model: str | None,
     ollama_streamer: Callable[
-        [ollama.AsyncClient | None, str, str],  
+        [ollama.AsyncClient | None, str, str, bool],  
         AsyncGenerator[str, None]
     ],
 ):
 
+    print(x_local_url, x_use_snippet_model, x_local_alignment_model, x_local_snippet_model)
     if not (x_local_url and x_use_snippet_model != None and x_local_alignment_model and x_local_snippet_model):
         raise HTTPException(
             status_code=400,
@@ -149,9 +165,9 @@ async def analyze_codesnippet_endpoint_ollama(
         )
 
     model_dict = await client.list()
-    model_list = model_dict.get("models")
+    model_list = model_dict["models"]
 
-    model_list = [ m["name"] for m in model_list ]
+    model_list = [ m["model"] for m in model_list ]
 
     if model not in model_list:
         raise HTTPException(
@@ -160,9 +176,14 @@ async def analyze_codesnippet_endpoint_ollama(
         )
 
     full_prompt = f"{request_data.code}"
+
+    print("x-snippet-model", x_local_snippet_model)
+    print("x-alignment-model", x_local_alignment_model)
+    print("x-use-snippet", x_use_snippet_model)
+    print("if: ", x_local_snippet_model if x_use_snippet_model else x_local_alignment_model)
     
     async def generate_stream() -> AsyncGenerator[str, None]:
-         async for chunk in ollama_streamer(client, full_prompt, x_local_snippet_model if x_use_snippet_model else x_local_alignment_model):
+         async for chunk in ollama_streamer(client, full_prompt, x_local_snippet_model if x_use_snippet_model else x_local_alignment_model, x_use_snippet_model):
             yield chunk
 
     return StreamingResponse(
@@ -178,9 +199,12 @@ async def analyze_codesnippet_endpoint_gemini(
 ):
 
     api_key = ""
+    settings = get_settings()
 
-    if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv and x_use_snippet_model != None:
+    if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv and x_use_snippet_model != None: 
         api_key = utils.decrypt_envelope(x_cloud_encrypted_key, x_cloud_iv, x_cloud_api_key, settings.RSA_PRIVATE_KEY)
+    elif settings.DEMO_MODE and settings.SERVER_SIDE_API_KEY:
+        api_key = settings.SERVER_SIDE_API_KEY
     else:
         raise HTTPException(
             status_code=400,
@@ -245,6 +269,8 @@ async def analyze_codesnippet_endpoint_chatgpt(
     api_key = ""
     if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv:
         api_key = utils.decrypt_envelope(x_cloud_encrypted_key, x_cloud_iv, x_cloud_api_key, settings.RSA_PRIVATE_KEY)
+    elif settings.DEMO_MODE and settings.SERVER_SIDE_API_KEY:
+        api_key = settings.SERVER_SIDE_API_KEY
 
     client = None
     try:
@@ -307,6 +333,8 @@ async def analyze_codesnippet_endpoint_grok(
     api_key = ""
     if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv:
         api_key = utils.decrypt_envelope(x_cloud_encrypted_key, x_cloud_iv, x_cloud_api_key, settings.RSA_PRIVATE_KEY)
+    elif settings.DEMO_MODE and settings.SERVER_SIDE_API_KEY:
+        api_key = settings.SERVER_SIDE_API_KEY
 
     client = None
     try:
@@ -371,6 +399,8 @@ async def analyze_codesnippet_endpoint_claude(
     api_key = ""
     if x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv:
         api_key = utils.decrypt_envelope(x_cloud_encrypted_key, x_cloud_iv, x_cloud_api_key, settings.RSA_PRIVATE_KEY)
+    elif settings.DEMO_MODE and settings.SERVER_SIDE_API_KEY:
+        api_key = settings.SERVER_SIDE_API_KEY
 
     client = None
     try:
@@ -409,7 +439,12 @@ REQUEST_MAP = {
     "analyze_codesnippet_openai": lambda a,b,c,d,e : analyze_codesnippet_endpoint_chatgpt(a,b,c,d,e),
 }
 
+@app.get("/alignments", tags=["Alignments"])
+async def get_alignments_endpoint():
+    return get_all_alignments()
+
 @app.post("/analyze", tags=["Proxy Route"])
+@limiter.limit(settings.RATE_LIMIT)
 async def analyze(
     request: Request,
     request_data: CodeAnalysisRequest,
@@ -423,18 +458,23 @@ async def analyze(
     x_cloud_api_key: Annotated[Union[str, None], Header()] = None,
     x_cloud_encrypted_key: Annotated[Union[str, None], Header()] = None,
     x_cloud_iv: Annotated[Union[str, None], Header()] = None,
+    x_snippet_signature: Annotated[Union[str, None], Header()] = None,
 ):
-
-    if not (x_use_local_provider and x_use_snippet_model and
-            x_default_cloud_provider and x_default_local_provider and
-            x_local_alignment_model and x_local_snippet_model):
-        raise HTTPException(
-            status_code=400,
-            detail="Incomplete headers"
-        )
+    
+    # Check incomplete headers logic:
+    # If DEMO_MODE is on and user didn't provide keys, we allow it IF server key exists.
+    # But if they provided some keys but not others, standard validation applies.
+    # To simplify: we check if keys are missing. If so, and demo mode is on, we proceed.
+    
+    has_client_keys = x_cloud_api_key and x_cloud_encrypted_key and x_cloud_iv
+    
+    if not has_client_keys:
+        if not (settings.DEMO_MODE and settings.SERVER_SIDE_API_KEY):
+             if not (x_use_local_provider and x_use_snippet_model and x_default_cloud_provider and x_default_local_provider and x_local_alignment_model and x_local_snippet_model):
+                raise HTTPException(status_code=400, detail="Incomplete headers")
 
     useLocalProvider = True if x_use_local_provider == 'true' else False if x_use_local_provider == 'false' else None
-    useSnippetModel = True if x_use_snippet_model == 'true' else False if x_use_local_provider == 'false' else None
+    useSnippetModel = True if x_use_snippet_model == 'true' else False if x_use_snippet_model == 'false' else None
 
     defaultLocalProvider = x_default_local_provider
     defaultCloudProvider = x_default_cloud_provider
@@ -449,8 +489,9 @@ async def analyze(
 
     streamer = get_ollama_streamer() if defaultLocalProvider == "ollama" else get_llama_streamer()
 
+    response = None
     if useLocalProvider:
-        return await REQUEST_MAP[f"analyze_codesnippet_{defaultLocalProvider}"](
+        response = await REQUEST_MAP[f"analyze_codesnippet_{defaultLocalProvider}"](
                 request_data, 
                 localUrl, 
                 useSnippetModel, 
@@ -459,7 +500,7 @@ async def analyze(
                 streamer
             )
     else:
-        return await REQUEST_MAP[f"analyze_codesnippet_{defaultCloudProvider}"](
+        response = await REQUEST_MAP[f"analyze_codesnippet_{defaultCloudProvider}"](
                 request_data,
                 useSnippetModel, 
                 cloudAPIKey, 
@@ -467,6 +508,30 @@ async def analyze(
                 cloudIV
             )
 
+    if x_snippet_signature and response and isinstance(response, StreamingResponse):
+        original_iterator = response.body_iterator
+        
+        async def saving_iterator():
+            full_text = ""
+            try:
+                async for chunk in original_iterator:
+                    yield chunk
+                    text_chunk = chunk
+                    if isinstance(chunk, bytes):
+                        text_chunk = chunk.decode("utf-8", errors="ignore")
+                    full_text += text_chunk
+            finally:
+                if full_text and not full_text.startswith("\n[SERVER_ERROR]") and not full_text.startswith("\n[API_ERROR]"):
+                     save_alignment(x_snippet_signature, full_text)
+
+        return StreamingResponse(
+            saving_iterator(),
+            status_code=response.status_code,
+            media_type=response.media_type,
+            background=response.background
+        )
+    
+    return response
 
 
 @app.get("/.well-known/rsa-key", tags=["RSA public key"])

@@ -7,3 +7,5 @@ models/
 showcode/
 .pytest_cache/
 __pycache__/
+alignments.db
+.alignments.db
