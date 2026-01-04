@@ -8,7 +8,37 @@ export function renderOverview(container, dataArray) {
 
 	container.innerHTML = ``;
 
-	dataArray.forEach((section, idx) => {
+	// Check if any item has a groupLabel
+	const hasGroups = dataArray.some(item => item.groupLabel);
+
+	if (!hasGroups) {
+		renderItems(container, dataArray);
+	} else {
+		const groups = new Map();
+		const noGroupKey = '__ungrouped__';
+
+		dataArray.forEach(item => {
+			const key = item.groupLabel || noGroupKey;
+			if (!groups.has(key)) {
+				groups.set(key, []);
+			}
+			groups.get(key).push(item);
+		});
+
+		groups.forEach((items, key) => {
+			if (key !== noGroupKey) {
+				const header = document.createElement('div');
+				header.className = 'group-header';
+				header.textContent = key;
+				container.appendChild(header);
+			}
+			renderItems(container, items);
+		});
+	}
+}
+
+function renderItems(container, items) {
+	items.forEach((section, idx) => {
 		const item = document.createElement('div');
 		item.className = 'accordion-item';
 

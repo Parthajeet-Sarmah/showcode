@@ -146,6 +146,7 @@
 			"data": [
 				{
 					"title": "Event Collection",
+					"groupLabel": "Frontend",
 					"description": "Collects events from various user interactions (mouse clicks, process state changes, keyboard events)",
 					"snippets": [
 						{
@@ -181,6 +182,7 @@
 				{
 					"title": "Data Ingestion",
 					"description": "The data ingestion pipeline takes in data from various collectors and converts it to SQL data",
+					"groupLabel": "Backend",
 					"snippets": [
 						{
 							"label": "Data Ingester",
@@ -194,6 +196,7 @@
 				{
 					"title": "AI Inference",
 					"description": "Using <b>gpt-oss-20B</b> to generate insights on collected events",
+					"groupLabel": "Backend",
 					"snippets": [
 						{
 							"label": "Event Fetcher",
@@ -221,6 +224,7 @@
 				{
 					"title": "API Backend",
 					"description": "Exposing API endpoint for the frontend to call the AI inference service, start summarizations and fetch insights",
+					"groupLabel": "Backend",
 					"snippets": [
 						{
 							"label": "API Server",
