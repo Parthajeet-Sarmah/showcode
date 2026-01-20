@@ -36,6 +36,7 @@ export async function callCodeAnalysisApi(codeSnippet, outputEle, firstTokenGene
 
 		if (!response.ok) {
 			const errorText = await response.text();
+			if (window.showToast) window.showToast(`Error in API, Check your configurations in Settings: ${errorText}`, "error");
 			throw new Error(`HTTP error! Status: ${response.status}. Details: ${errorText}`);
 		}
 
@@ -116,8 +117,8 @@ export async function callSnippetAnalysisApi(codeSnippet, outputEle, firstTokenG
 		});
 
 		if (!response.ok) {
-			console.log("response not ok")
 			const errorText = await response.text();
+			if (window.showToast) window.showToast(`Error in API, Check your configurations in Settings: ${errorText}`, "error");
 			throw new Error(`HTTP error! Status: ${response.status}. Details: ${errorText}`);
 		}
 
