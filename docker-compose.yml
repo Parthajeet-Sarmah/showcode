@@ -11,7 +11,7 @@ services:
       - app-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=PathPrefix(`/analyze`) || PathPrefix(`/.well-known`)"
+      - "traefik.http.routers.backend.rule=Host(`showcode.parthajeet.xyz`) && (PathPrefix(`/analyze`) || PathPrefix(`/.well-known`))"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
 
   frontend:
