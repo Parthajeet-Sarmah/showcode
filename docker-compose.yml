@@ -25,7 +25,7 @@ services:
       - app-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.rule=Host(`showcode.parthajeet.xyz`)"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
 networks:
