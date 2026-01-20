@@ -5,7 +5,11 @@ import { renderAlignmentView } from './alignment.js';
 import { callSnippetAnalysisApi } from './code.js';
 
 let appData = null;
-let currentProjectIndex = localStorage.getItem("currentProjectIndex") || 0;
+const urlParams = new URLSearchParams(window.location.search);
+const projectParam = urlParams.get('project');
+let currentProjectIndex = projectParam !== null && !isNaN(parseInt(projectParam)) 
+	? parseInt(projectParam) 
+	: (localStorage.getItem("currentProjectIndex") || 0);
 
 document.addEventListener('DOMContentLoaded', async () => {
 	appData = await fetchData();
@@ -57,6 +61,11 @@ function loadProject(index) {
 	if (!appData || !appData.collection[index]) return;
 
 	currentProjectIndex = index;
+
+	const url = new URL(window.location);
+	url.searchParams.set('project', index);
+	window.history.replaceState({}, '', url);
+
 	const projectData = appData.collection[index];
 
 	const header = document.getElementById('header-container');
