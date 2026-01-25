@@ -1,831 +1,831 @@
 {
-  "collection": [
-    {
-      "project": "ShowCode",
-      "flow": {
-        "nodes": [
-          {
-            "id": "frontend",
-            "label": "Frontend (JS/HTML)",
-            "x": -310,
-            "y": -150,
-            "info": "Main user interface for visualizing code, flows and alignments",
-            "type": "process",
-            "linkedDataIndex": 0
-          },
-          {
-            "id": "nginx",
-            "label": "Web Server (Nginx)",
-            "x": -750,
-            "y": -150,
-            "info": "Serves the static frontend assets",
-            "type": "start"
-          },
-          {
-            "id": "backend_api",
-            "label": "Backend API (Python/FastAPI)",
-            "x": 0,
-            "y": 0,
-            "info": "Core application logic, fetches data, and interacts with other services",
-            "type": "process",
-            "linkedDataIndex": 1
-          },
-          {
-            "id": "content_json",
-            "label": "Content Definition (content.json)",
-            "x": 420,
-            "y": -210,
-            "info": "JSON file defining the projects, code snippets, and flows to be displayed",
-            "type": "process"
-          },
-          {
-            "id": "github",
-            "label": "Code Repositories (GitHub)",
-            "x": 70,
-            "y": -290,
-            "info": "Source of truth for the code snippets that are fetched and displayed",
-            "type": "end"
-          },
-          {
-            "id": "llm_providers",
-            "label": "LLM Providers",
-            "x": 330,
-            "y": 260,
-            "info": "AI models (OpenAI, Gemini, Ollama, etc.) used for code analysis or generation",
-            "type": "end"
-          }
-        ],
-        "edges": [
-          {
-            "from": "nginx",
-            "to": "frontend",
-            "label": "Serves static files"
-          },
-          {
-            "from": "frontend",
-            "to": "backend_api",
-            "label": "API Calls (e.g., /get_content)"
-          },
-          {
-            "from": "backend_api",
-            "to": "content_json",
-            "label": "Reads project data"
-          },
-          {
-            "from": "backend_api",
-            "to": "github",
-            "label": "Fetches code snippets via URL"
-          },
-          {
-            "from": "backend_api",
-            "to": "llm_providers",
-            "label": "Sends requests for analysis"
-          }
-        ]
-      },
-      "data": [
-        {
-          "title": "Frontend Application",
-          "groupLabel": "Frontend",
-          "description": "The user-facing interface built with vanilla JavaScript, HTML, and CSS. It handles rendering the different views of the application.",
-          "snippets": [
-            {
-              "label": "Main Entrypoint",
-              "file": "index.html",
-              "language": "html",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/index.html",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/index.html"
-            },
-            {
-              "label": "Core JS Logic",
-              "file": "js/main.js",
-              "language": "javascript",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/js/main.js",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/js/main.js"
-            },
-            {
-              "label": "Flow Diagram Renderer",
-              "file": "js/flow.js",
-              "language": "javascript",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/js/flow.js",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/js/flow.js"
-            },
-            {
-              "label": "Code Editor",
-              "file": "js/editor.js",
-              "language": "javascript",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/js/editor.js",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/js/editor.js"
-            }
-          ]
-        },
-        {
-          "title": "Backend API",
-          "groupLabel": "Backend",
-          "description": "A Python backend using the FastAPI framework. It serves project data, fetches code snippets from repositories, and integrates with LLMs.",
-          "snippets": [
-            {
-              "label": "API Endpoints",
-              "file": "backend/api.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/backend/api.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/backend/api.py"
-            },
-            {
-              "label": "Content Generators",
-              "file": "backend/generators.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/backend/generators.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/backend/generators.py"
-            }
-          ]
-        },
-        {
-          "title": "Infrastructure",
-          "groupLabel": "Infra",
-          "description": "Configuration files for Docker orchestration and the Nginx web server.",
-          "snippets": [
-            {
-              "label": "Docker Compose",
-              "file": "docker-compose.yml",
-              "language": "yaml",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/docker-compose.yml",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/docker-compose.yml"
-            },
-            {
-              "label": "Nginx Configuration",
-              "file": "nginx.conf",
-              "language": "nginx",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/nginx.conf",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/nginx.conf"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "project": "SmartWorker",
-      "flow": {
-        "nodes": [
-          {
-            "id": "job_producer",
-            "label": "Job Producer",
-            "x": -750,
-            "y": -210,
-            "info": "Produces jobs to be consumed by the job system",
-            "type": "start"
-          },
-          {
-            "id": "redis",
-            "label": "Redis",
-            "x": -660,
-            "y": 100,
-            "info": "Message broker for the job system",
-            "type": "process"
-          },
-          {
-            "id": "queues",
-            "label": "Job Queues",
-            "x": -430,
-            "y": -80,
-            "info": "Queues that hold jobs to be consumed",
-            "type": "process",
-            "linkedDataIndex": 0
-          },
-          {
-            "id": "workers",
-            "label": "Job Workers",
-            "x": -110,
-            "y": 60,
-            "info": "Workers that consume jobs from the queues",
-            "type": "process",
-            "linkedDataIndex": 0
-          },
-          {
-            "id": "ai_layer",
-            "label": "AI Layer",
-            "x": 170,
-            "y": -80,
-            "info": "AI layer for reasoning and proposing changes",
-            "type": "process",
-            "linkedDataIndex": 1
-          },
-          {
-            "id": "sandbox",
-            "label": "Sandbox",
-            "x": 450,
-            "y": 90,
-            "info": "Isolated environment for testing proposed changes",
-            "type": "process",
-            "linkedDataIndex": 2
-          },
-          {
-            "id": "email",
-            "label": "Email Client",
-            "x": 430,
-            "y": -250,
-            "info": "Client for sending email notifications to developers",
-            "type": "end",
-            "linkedDataIndex": 3
-          }
-        ],
-        "edges": [
-          {
-            "from": "job_producer",
-            "to": "queues",
-            "label": "Produce job"
-          },
-          {
-            "from": "redis",
-            "to": "queues",
-            "label": "Manages"
-          },
-          {
-            "from": "queues",
-            "to": "workers",
-            "label": "Consumed by"
-          },
-          {
-            "from": "workers",
-            "to": "ai_layer",
-            "label": "Call for reasoning"
-          },
-          {
-            "from": "ai_layer",
-            "to": "sandbox",
-            "label": "Test changes"
-          },
-          {
-            "from": "ai_layer",
-            "to": "email",
-            "label": "Send success / failure"
-          }
-        ]
-      },
-      "data": [
-        {
-          "title": "Workers & Queues (Traditional Job System)",
-          "description": "Traditional workers and queues of the job system. Workers include a call to the AI layer.",
-          "snippets": [
-            {
-              "label": "Sample Workers",
-              "file": "workers.ts",
-              "language": "typescript",
-              "repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/workers.ts",
-              "githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/workers.ts"
-            },
-            {
-              "label": "Sample Queues",
-              "file": "queues.ts",
-              "language": "typescript",
-              "repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/queues.ts",
-              "githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/queues.ts"
-            }
-          ]
-        },
-        {
-          "title": "AI Reasoning",
-          "description": "AI reasoning integration to the job system for automatic code changes",
-          "snippets": [
-            {
-              "label": "Reasoning Layer",
-              "file": "reasoning.ts",
-              "language": "typescript",
-              "repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/ai-layer/reasoning.ts",
-              "githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/ai-layer/reasoning.ts"
-            }
-          ]
-        },
-        {
-          "title": "Sandbox Testing",
-          "description": "Sandbox testing of proposed changes by AI",
-          "snippets": [
-            {
-              "label": "Entrypoint (Docker)",
-              "file": "entrypoint.ts",
-              "language": "typescript",
-              "repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/ai-layer/entrypoint.ts",
-              "githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/ai-layer/entrypoint.ts"
-            },
-            {
-              "label": "Sandbox Builder",
-              "file": "sandbox.ts",
-              "language": "typescript",
-              "repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/ai-layer/sandbox.ts",
-              "githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/ai-layer/sandbox.ts"
-            },
-            {
-              "label": "Sandbox Destroyer",
-              "file": "destroy-sandbox.ts",
-              "language": "typescript",
-              "repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/ai-layer/destroy-sandbox.ts",
-              "githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/ai-layer/destroy-sandbox.ts"
-            },
-            {
-              "label": "Job Runner",
-              "file": "run-job.ts",
-              "language": "typescript",
-              "repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/ai-layer/run-job.ts",
-              "githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/ai-layer/run-job.ts"
-            }
-          ]
-        },
-        {
-          "title": "Email Client",
-          "description": "Send emails to developer regarding success / failure",
-          "snippets": [
-            {
-              "label": "Email Singleton",
-              "file": "email.ts",
-              "language": "typescript",
-              "repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/email.ts",
-              "githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/email.ts"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "project": "Open AI Hackathon Local AI Chat",
-      "flow": {
-        "nodes": [
-          {
-            "id": "ev_listener_mouse",
-            "label": "Event Listener (Mouse)",
-            "x": -810,
-            "y": -130,
-            "info": "Listens to mouse events (clicks, drags)",
-            "type": "start",
-            "linkedDataIndex": 0
-          },
-          {
-            "id": "ev_listener_keyboard",
-            "label": "Event Listener (Keyboard)",
-            "x": -810,
-            "y": -50,
-            "info": "Captures keystrokes and shortcut combinations",
-            "type": "start"
-          },
-          {
-            "id": "ev_listener_process",
-            "label": "Event Listener (Process)",
-            "x": -810,
-            "y": 30,
-            "info": "Monitors active window titles and process IDs",
-            "type": "start"
-          },
-          {
-            "id": "data_ingester",
-            "label": "Data Ingester",
-            "x": -400,
-            "y": -130,
-            "info": "Aggregates, filters, and normalizes raw event streams",
-            "type": "process"
-          },
-          {
-            "id": "sqlite_store",
-            "label": "Data Store (SQLite)",
-            "x": -100,
-            "y": -30,
-            "info": "Persists structured event logs on the local disk",
-            "type": "end"
-          },
-          {
-            "id": "api_backend",
-            "label": "API Backend (FastAPI)",
-            "x": 170,
-            "y": -250,
-            "info": "Orchestrates data flow and serves endpoints"
-          },
-          {
-            "id": "ev_fetcher",
-            "label": "Event Fetcher",
-            "x": 500,
-            "y": -90,
-            "info": "Retrieves relevant historical context from storage",
-            "type": "start"
-          },
-          {
-            "id": "prompt_builder",
-            "label": "Prompt Builder",
-            "x": 500,
-            "y": 20,
-            "info": "Constructs context-aware system prompts for the AI",
-            "type": "start"
-          },
-          {
-            "id": "ai_inference",
-            "label": "AI Inference",
-            "x": 500,
-            "y": 120,
-            "info": "Manages inference logic and token generation",
-            "type": "start"
-          },
-          {
-            "id": "gpt_local_model",
-            "label": "gpt-oss-20B Locally Hosted",
-            "x": 500,
-            "y": 230,
-            "info": "Executes the 20B parameter model weights locally",
-            "type": "end"
-          },
-          {
-            "id": "frontend_client",
-            "label": "Frontend Client",
-            "x": -400,
-            "y": -250,
-            "info": "User dashboard for visualization and queries",
-            "type": "process"
-          }
-        ],
-        "edges": [
-          {
-            "from": "ev_listener_mouse",
-            "to": "data_ingester",
-            "label": "Event Raw Data"
-          },
-          {
-            "from": "ev_listener_keyboard",
-            "to": "data_ingester",
-            "label": "Event Raw Data"
-          },
-          {
-            "from": "ev_listener_process",
-            "to": "data_ingester",
-            "label": "Event Raw Data"
-          },
-          {
-            "from": "data_ingester",
-            "to": "sqlite_store",
-            "label": "Structure & Store"
-          },
-          {
-            "from": "sqlite_store",
-            "to": "api_backend",
-            "label": "Fetch events"
-          },
-          {
-            "from": "api_backend",
-            "to": "ev_fetcher",
-            "label": "Send fetched events"
-          },
-          {
-            "from": "ev_fetcher",
-            "to": "prompt_builder"
-          },
-          {
-            "from": "prompt_builder",
-            "to": "ai_inference"
-          },
-          {
-            "from": "ai_inference",
-            "to": "gpt_local_model"
-          },
-          {
-            "from": "frontend_client",
-            "to": "api_backend",
-            "label": "GET /summarize"
-          }
-        ]
-      },
-      "data": [
-        {
-          "title": "Event Collection",
-          "groupLabel": "Frontend",
-          "description": "Collects events from various user interactions (mouse clicks, process state changes, keyboard events)",
-          "snippets": [
-            {
-              "label": "Parent Event Collector",
-              "file": "main.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/event_collector/main.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/event_collector/main.py"
-            },
-            {
-              "label": "Mouse Event Collector",
-              "file": "mouse_event_collector.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/event_collector/mouse_event_collector.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/event_collector/mouse_event_collector.py"
-            },
-            {
-              "label": "Keyboard Event Collector",
-              "file": "keyboard_event_collector.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/event_collector/keyboard_event_collector.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/event_collector/keyboard_event_collector.py"
-            },
-            {
-              "label": "Process Event Collector",
-              "file": "process_event_collector.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/event_collector/process_event_collector.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/event_collector/process_event_collector.py"
-            }
-          ]
-        },
-        {
-          "title": "Data Ingestion",
-          "description": "The data ingestion pipeline takes in data from various collectors and converts it to SQL data",
-          "groupLabel": "Backend",
-          "snippets": [
-            {
-              "label": "Data Ingester",
-              "file": "main.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/data_ingestor/main.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/data_ingestor/main.py"
-            }
-          ]
-        },
-        {
-          "title": "AI Inference",
-          "description": "Using <b>gpt-oss-20B</b> to generate insights on collected events",
-          "groupLabel": "Backend",
-          "snippets": [
-            {
-              "label": "Event Fetcher",
-              "file": "event_fetcher.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/ai_inference/event_fetcher.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/ai_inference/event_fetcher.py"
-            },
-            {
-              "label": "Prompt Builder",
-              "file": "prompt_builder.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/ai_inference/prompt_builder.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/ai_inference/prompt_builder.py"
-            },
-            {
-              "label": "Model Inference",
-              "file": "model_inference.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/ai_inference/model_inference.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/ai_inference/model_inference.py"
-            }
-          ]
-        },
-        {
-          "title": "API Backend",
-          "description": "Exposing API endpoint for the frontend to call the AI inference service, start summarizations and fetch insights",
-          "groupLabel": "Backend",
-          "snippets": [
-            {
-              "label": "API Server",
-              "file": "api_server.py",
-              "language": "python",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/backend/api_server.py",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/backend/api_server.py"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "project": "OAuth + OIDC Authorization Server",
-      "flow": {
-        "nodes": [
-          {
-            "id": "user",
-            "label": "User",
-            "x": -140,
-            "y": 280,
-            "info": "A typical user who wants to login to some platform / service",
-            "type": "start"
-          },
-          {
-            "id": "oauth_client",
-            "label": "OAuth + OIDC Client",
-            "x": -350,
-            "y": -310,
-            "info": "OAuth client provides an interface to the user to connect to the authorization server.",
-            "type": "process"
-          },
-          {
-            "id": "oauth_authorization",
-            "label": "OAuth Authorization",
-            "x": 100,
-            "y": -310,
-            "info": "OAuth client provides an interface to the user to connect to the authorization server.",
-            "type": "process"
-          },
-          {
-            "id": "oidc_login",
-            "label": "OIDC Login",
-            "x": 100,
-            "y": -40,
-            "info": "OAuth client provides an interface to the user to connect to the authorization server.",
-            "type": "end"
-          },
-          {
-            "id": "oauth_consent",
-            "label": "OAuth User Consent",
-            "x": 530,
-            "y": -40,
-            "type": "process"
-          },
-          {
-            "id": "oauth_token_gen",
-            "label": "OAuth Token Generation",
-            "x": -750,
-            "y": -30,
-            "type": "process"
-          }
-        ],
-        "edges": [
-          {
-            "from": "user",
-            "to": "oauth_client",
-            "label": "1) Requesting login"
-          },
-          {
-            "from": "oauth_client",
-            "to": "oauth_authorization",
-            "label": "2) /authorize"
-          },
-          {
-            "from": "oauth_authorization",
-            "to": "oidc_login",
-            "label": "3a) User not logged in"
-          },
-          {
-            "from": "oidc_login",
-            "to": "user",
-            "label": "3b) Login UI"
-          },
-          {
-            "from": "user",
-            "to": "oidc_login",
-            "label": "3c) User provides login credentials"
-          },
-          {
-            "from": "oidc_login",
-            "to": "oauth_authorization",
-            "label": "3d) Logged in. Cookie sent"
-          },
-          {
-            "from": "oauth_authorization",
-            "to": "oauth_consent",
-            "label": "4a) No consent by user"
-          },
-          {
-            "from": "oauth_consent",
-            "to": "user",
-            "label": "4b) Consent approval UI"
-          },
-          {
-            "from": "user",
-            "to": "oauth_consent",
-            "label": "4c) Consent provided"
-          },
-          {
-            "from": "oauth_consent",
-            "to": "oauth_authorization",
-            "label": "4d) Consent provided"
-          },
-          {
-            "from": "oauth_authorization",
-            "to": "user",
-            "label": "5) Callback URI + Auth code provided"
-          },
-          {
-            "from": "oauth_client",
-            "to": "oauth_token_gen",
-            "label": "6) Generate access token"
-          },
-          {
-            "from": "oauth_token_gen",
-            "to": "oauth_client",
-            "label": "7) Send access token, id token (if any), refresh_token"
-          }
-        ]
-      },
-      "data": [
-        {
-          "title": "OAuth Authorization",
-          "description": "Authorization services for authorizing users, generating tokens and consents",
-          "snippets": [
-            {
-              "label": "Authorize & Code Generation",
-              "file": "authorization.go",
-              "language": "golang",
-              "lineStart": 27,
-              "lineEnd": 136,
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/authorization/authorization.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oauth-server/services/authorization/authorization.go#L27C1-L136C2"
-            },
-            {
-              "label": "Token Generation",
-              "file": "authorization.go",
-              "language": "golang",
-              "lineStart": 180,
-              "lineEnd": 499,
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/authorization/authorization.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oauth-server/services/authorization/authorization.go#L180-L499"
-            },
-            {
-              "label": "Token Revocation",
-              "file": "authorization.go",
-              "language": "golang",
-              "lineStart": 502,
-              "lineEnd": 525,
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/authorization/authorization.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oauth-server/services/authorization/authorization.go#L502C1-L525C2"
-            },
-            {
-              "label": "User Consents",
-              "file": "authorization.go",
-              "language": "golang",
-              "lineStart": 138,
-              "lineEnd": 178,
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/authorization/authorization.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oauth-server/services/authorization/authorization.go#L138C1-L178C2"
-            }
-          ]
-        },
-        {
-          "title": "OAuth Client Services",
-          "description": "Handles OAuth client related operations such as registration",
-          "snippets": [
-            {
-              "label": "Register OAuth Client",
-              "file": "client.go",
-              "language": "golang",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/clients/client.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/main/oauth-server/services/clients/client.go"
-            }
-          ]
-        },
-        {
-          "title": "OAuth Introspection",
-          "description": "Introspect access and refresh tokens to extract payload information required by the OAuth service",
-          "snippets": [
-            {
-              "label": "Introspection",
-              "file": "introspect.go",
-              "language": "golang",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/introspect/introspect.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/main/oauth-server/services/introspect/introspect.go"
-            }
-          ]
-        },
-        {
-          "title": "OIDC User Service",
-          "description": "Handles the user flows such as login, logout etc. Seperate from the OAuth service.",
-          "snippets": [
-            {
-              "label": "User Fetching via ID",
-              "file": "user.go",
-              "language": "golang",
-              "lineStart": 25,
-              "lineEnd": 52,
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/users/user.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oidc-service/services/users/user.go#L25C1-L52C2"
-            },
-            {
-              "label": "User Login",
-              "file": "user.go",
-              "language": "golang",
-              "lineStart": 54,
-              "lineEnd": 96,
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/users/user.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oidc-service/services/users/user.go#L54C1-L96C2"
-            },
-            {
-              "label": "User Registration",
-              "file": "user.go",
-              "language": "golang",
-              "lineStart": 98,
-              "lineEnd": 120,
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/users/user.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oidc-service/services/users/user.go#L98C1-L120C2"
-            },
-            {
-              "label": "User Info",
-              "file": "user.go",
-              "language": "golang",
-              "lineStart": 122,
-              "lineEnd": 183,
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/users/user.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oidc-service/services/users/user.go#L122C1-L183C2"
-            }
-          ]
-        },
-        {
-          "title": "OIDC User Sessions Service",
-          "description": "Handles operations related to user sessions",
-          "snippets": [
-            {
-              "label": "End Session",
-              "file": "sessions.go",
-              "language": "golang",
-              "repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/sessions/sessions.go",
-              "githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/main/oidc-service/services/sessions/sessions.go"
-            }
-          ]
-        }
-      ]
-    }
-  ]
+	"collection": [
+		{
+			"project": "ShowCode",
+			"flow": {
+				"nodes": [
+					{
+						"id": "frontend",
+						"label": "Frontend (JS/HTML)",
+						"x": -310,
+						"y": -150,
+						"info": "Main user interface for visualizing code, flows and alignments",
+						"type": "process",
+						"linkedDataIndex": 0
+					},
+					{
+						"id": "nginx",
+						"label": "Web Server (Nginx)",
+						"x": -750,
+						"y": -150,
+						"info": "Serves the static frontend assets",
+						"type": "start"
+					},
+					{
+						"id": "backend_api",
+						"label": "Backend API (Python/FastAPI)",
+						"x": 0,
+						"y": 0,
+						"info": "Core application logic, fetches data, and interacts with other services",
+						"type": "process",
+						"linkedDataIndex": 1
+					},
+					{
+						"id": "content_json",
+						"label": "Content Definition (content.json)",
+						"x": 420,
+						"y": -210,
+						"info": "JSON file defining the projects, code snippets, and flows to be displayed",
+						"type": "process"
+					},
+					{
+						"id": "github",
+						"label": "Code Repositories (GitHub)",
+						"x": 70,
+						"y": -290,
+						"info": "Source of truth for the code snippets that are fetched and displayed",
+						"type": "end"
+					},
+					{
+						"id": "llm_providers",
+						"label": "LLM Providers",
+						"x": 330,
+						"y": 260,
+						"info": "AI models (OpenAI, Gemini, Ollama, etc.) used for code analysis or generation",
+						"type": "end"
+					}
+				],
+				"edges": [
+					{
+						"from": "nginx",
+						"to": "frontend",
+						"label": "Serves static files"
+					},
+					{
+						"from": "frontend",
+						"to": "backend_api",
+						"label": "API Calls (e.g., /get_content)"
+					},
+					{
+						"from": "backend_api",
+						"to": "content_json",
+						"label": "Reads project data"
+					},
+					{
+						"from": "backend_api",
+						"to": "github",
+						"label": "Fetches code snippets via URL"
+					},
+					{
+						"from": "backend_api",
+						"to": "llm_providers",
+						"label": "Sends requests for analysis"
+					}
+				]
+			},
+			"data": [
+				{
+					"title": "Frontend Application",
+					"groupLabel": "Frontend",
+					"description": "The user-facing interface built with vanilla JavaScript, HTML, and CSS. It handles rendering the different views of the application.",
+					"snippets": [
+						{
+							"label": "Main Entrypoint",
+							"file": "index.html",
+							"language": "html",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/index.html",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/index.html"
+						},
+						{
+							"label": "Core JS Logic",
+							"file": "js/main.js",
+							"language": "javascript",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/js/main.js",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/js/main.js"
+						},
+						{
+							"label": "Flow Diagram Renderer",
+							"file": "js/flow.js",
+							"language": "javascript",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/js/flow.js",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/js/flow.js"
+						},
+						{
+							"label": "Code Editor",
+							"file": "js/editor.js",
+							"language": "javascript",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/js/editor.js",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/js/editor.js"
+						}
+					]
+				},
+				{
+					"title": "Backend API",
+					"groupLabel": "Backend",
+					"description": "A Python backend using the FastAPI framework. It serves project data, fetches code snippets from repositories, and integrates with LLMs.",
+					"snippets": [
+						{
+							"label": "API Endpoints",
+							"file": "backend/api.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/backend/api.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/backend/api.py"
+						},
+						{
+							"label": "Content Generators",
+							"file": "backend/generators.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/backend/generators.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/backend/generators.py"
+						}
+					]
+				},
+				{
+					"title": "Infrastructure",
+					"groupLabel": "Infra",
+					"description": "Configuration files for Docker orchestration and the Nginx web server.",
+					"snippets": [
+						{
+							"label": "Docker Compose",
+							"file": "docker-compose.yml",
+							"language": "yaml",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/docker-compose.yml",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/docker-compose.yml"
+						},
+						{
+							"label": "Nginx Configuration",
+							"file": "nginx.conf",
+							"language": "nginx",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/showcode/main/nginx.conf",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/showcode/blob/main/nginx.conf"
+						}
+					]
+				}
+			]
+		},
+		{
+			"project": "SmartWorker",
+			"flow": {
+				"nodes": [
+					{
+						"id": "job_producer",
+						"label": "Job Producer",
+						"x": -750,
+						"y": -210,
+						"info": "Produces jobs to be consumed by the job system",
+						"type": "start"
+					},
+					{
+						"id": "redis",
+						"label": "Redis",
+						"x": -660,
+						"y": 100,
+						"info": "Message broker for the job system",
+						"type": "process"
+					},
+					{
+						"id": "queues",
+						"label": "Job Queues",
+						"x": -430,
+						"y": -80,
+						"info": "Queues that hold jobs to be consumed",
+						"type": "process",
+						"linkedDataIndex": 0
+					},
+					{
+						"id": "workers",
+						"label": "Job Workers",
+						"x": -110,
+						"y": 60,
+						"info": "Workers that consume jobs from the queues",
+						"type": "process",
+						"linkedDataIndex": 0
+					},
+					{
+						"id": "ai_layer",
+						"label": "AI Layer",
+						"x": 170,
+						"y": -80,
+						"info": "AI layer for reasoning and proposing changes",
+						"type": "process",
+						"linkedDataIndex": 1
+					},
+					{
+						"id": "sandbox",
+						"label": "Sandbox",
+						"x": 450,
+						"y": 90,
+						"info": "Isolated environment for testing proposed changes",
+						"type": "process",
+						"linkedDataIndex": 2
+					},
+					{
+						"id": "email",
+						"label": "Email Client",
+						"x": 430,
+						"y": -250,
+						"info": "Client for sending email notifications to developers",
+						"type": "end",
+						"linkedDataIndex": 3
+					}
+				],
+				"edges": [
+					{
+						"from": "job_producer",
+						"to": "queues",
+						"label": "Produce job"
+					},
+					{
+						"from": "redis",
+						"to": "queues",
+						"label": "Manages"
+					},
+					{
+						"from": "queues",
+						"to": "workers",
+						"label": "Consumed by"
+					},
+					{
+						"from": "workers",
+						"to": "ai_layer",
+						"label": "Call for reasoning"
+					},
+					{
+						"from": "ai_layer",
+						"to": "sandbox",
+						"label": "Test changes"
+					},
+					{
+						"from": "ai_layer",
+						"to": "email",
+						"label": "Send success / failure"
+					}
+				]
+			},
+			"data": [
+				{
+					"title": "Workers & Queues (Traditional Job System)",
+					"description": "Traditional workers and queues of the job system. Workers include a call to the AI layer.",
+					"snippets": [
+						{
+							"label": "Sample Workers",
+							"file": "workers.ts",
+							"language": "typescript",
+							"repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/workers.ts",
+							"githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/workers.ts"
+						},
+						{
+							"label": "Sample Queues",
+							"file": "queues.ts",
+							"language": "typescript",
+							"repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/queues.ts",
+							"githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/queues.ts"
+						}
+					]
+				},
+				{
+					"title": "AI Reasoning",
+					"description": "AI reasoning integration to the job system for automatic code changes",
+					"snippets": [
+						{
+							"label": "Reasoning Layer",
+							"file": "reasoning.ts",
+							"language": "typescript",
+							"repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/reasoning-layer/reasoning.ts",
+							"githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/reasoning-layer/reasoning.ts"
+						}
+					]
+				},
+				{
+					"title": "Sandbox Testing",
+					"description": "Sandbox testing of proposed changes by AI",
+					"snippets": [
+						{
+							"label": "Entrypoint (Docker)",
+							"file": "entrypoint.ts",
+							"language": "typescript",
+							"repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/reasoning-layer/entrypoint.ts",
+							"githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/reasoning-layer/entrypoint.ts"
+						},
+						{
+							"label": "Sandbox Builder",
+							"file": "sandbox.ts",
+							"language": "typescript",
+							"repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/reasoning-layer/sandbox.ts",
+							"githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/reasoning-layer/sandbox.ts"
+						},
+						{
+							"label": "Sandbox Destroyer",
+							"file": "destroy-sandbox.ts",
+							"language": "typescript",
+							"repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/reasoning-layer/destroy-sandbox.ts",
+							"githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/reasoning-layer/destroy-sandbox.ts"
+						},
+						{
+							"label": "Job Runner",
+							"file": "run-job.ts",
+							"language": "typescript",
+							"repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/reasoning-layer/run-job.ts",
+							"githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/reasoning-layer/run-job.ts"
+						}
+					]
+				},
+				{
+					"title": "Email Client",
+					"description": "Send emails to developer regarding success / failure",
+					"snippets": [
+						{
+							"label": "Email Singleton",
+							"file": "email.ts",
+							"language": "typescript",
+							"repoUrl": "https://raw.githubusercontent.com/pthsarmah/smart-worker/main/email.ts",
+							"githubFileUrl": "https://github.com/pthsarmah/smart-worker/blob/main/email.ts"
+						}
+					]
+				}
+			]
+		},
+		{
+			"project": "Open AI Hackathon Local AI Chat",
+			"flow": {
+				"nodes": [
+					{
+						"id": "ev_listener_mouse",
+						"label": "Event Listener (Mouse)",
+						"x": -810,
+						"y": -130,
+						"info": "Listens to mouse events (clicks, drags)",
+						"type": "start",
+						"linkedDataIndex": 0
+					},
+					{
+						"id": "ev_listener_keyboard",
+						"label": "Event Listener (Keyboard)",
+						"x": -810,
+						"y": -50,
+						"info": "Captures keystrokes and shortcut combinations",
+						"type": "start"
+					},
+					{
+						"id": "ev_listener_process",
+						"label": "Event Listener (Process)",
+						"x": -810,
+						"y": 30,
+						"info": "Monitors active window titles and process IDs",
+						"type": "start"
+					},
+					{
+						"id": "data_ingester",
+						"label": "Data Ingester",
+						"x": -400,
+						"y": -130,
+						"info": "Aggregates, filters, and normalizes raw event streams",
+						"type": "process"
+					},
+					{
+						"id": "sqlite_store",
+						"label": "Data Store (SQLite)",
+						"x": -100,
+						"y": -30,
+						"info": "Persists structured event logs on the local disk",
+						"type": "end"
+					},
+					{
+						"id": "api_backend",
+						"label": "API Backend (FastAPI)",
+						"x": 170,
+						"y": -250,
+						"info": "Orchestrates data flow and serves endpoints"
+					},
+					{
+						"id": "ev_fetcher",
+						"label": "Event Fetcher",
+						"x": 500,
+						"y": -90,
+						"info": "Retrieves relevant historical context from storage",
+						"type": "start"
+					},
+					{
+						"id": "prompt_builder",
+						"label": "Prompt Builder",
+						"x": 500,
+						"y": 20,
+						"info": "Constructs context-aware system prompts for the AI",
+						"type": "start"
+					},
+					{
+						"id": "ai_inference",
+						"label": "AI Inference",
+						"x": 500,
+						"y": 120,
+						"info": "Manages inference logic and token generation",
+						"type": "start"
+					},
+					{
+						"id": "gpt_local_model",
+						"label": "gpt-oss-20B Locally Hosted",
+						"x": 500,
+						"y": 230,
+						"info": "Executes the 20B parameter model weights locally",
+						"type": "end"
+					},
+					{
+						"id": "frontend_client",
+						"label": "Frontend Client",
+						"x": -400,
+						"y": -250,
+						"info": "User dashboard for visualization and queries",
+						"type": "process"
+					}
+				],
+				"edges": [
+					{
+						"from": "ev_listener_mouse",
+						"to": "data_ingester",
+						"label": "Event Raw Data"
+					},
+					{
+						"from": "ev_listener_keyboard",
+						"to": "data_ingester",
+						"label": "Event Raw Data"
+					},
+					{
+						"from": "ev_listener_process",
+						"to": "data_ingester",
+						"label": "Event Raw Data"
+					},
+					{
+						"from": "data_ingester",
+						"to": "sqlite_store",
+						"label": "Structure & Store"
+					},
+					{
+						"from": "sqlite_store",
+						"to": "api_backend",
+						"label": "Fetch events"
+					},
+					{
+						"from": "api_backend",
+						"to": "ev_fetcher",
+						"label": "Send fetched events"
+					},
+					{
+						"from": "ev_fetcher",
+						"to": "prompt_builder"
+					},
+					{
+						"from": "prompt_builder",
+						"to": "ai_inference"
+					},
+					{
+						"from": "ai_inference",
+						"to": "gpt_local_model"
+					},
+					{
+						"from": "frontend_client",
+						"to": "api_backend",
+						"label": "GET /summarize"
+					}
+				]
+			},
+			"data": [
+				{
+					"title": "Event Collection",
+					"groupLabel": "Frontend",
+					"description": "Collects events from various user interactions (mouse clicks, process state changes, keyboard events)",
+					"snippets": [
+						{
+							"label": "Parent Event Collector",
+							"file": "main.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/event_collector/main.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/event_collector/main.py"
+						},
+						{
+							"label": "Mouse Event Collector",
+							"file": "mouse_event_collector.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/event_collector/mouse_event_collector.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/event_collector/mouse_event_collector.py"
+						},
+						{
+							"label": "Keyboard Event Collector",
+							"file": "keyboard_event_collector.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/event_collector/keyboard_event_collector.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/event_collector/keyboard_event_collector.py"
+						},
+						{
+							"label": "Process Event Collector",
+							"file": "process_event_collector.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/event_collector/process_event_collector.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/event_collector/process_event_collector.py"
+						}
+					]
+				},
+				{
+					"title": "Data Ingestion",
+					"description": "The data ingestion pipeline takes in data from various collectors and converts it to SQL data",
+					"groupLabel": "Backend",
+					"snippets": [
+						{
+							"label": "Data Ingester",
+							"file": "main.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/data_ingestor/main.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/data_ingestor/main.py"
+						}
+					]
+				},
+				{
+					"title": "AI Inference",
+					"description": "Using <b>gpt-oss-20B</b> to generate insights on collected events",
+					"groupLabel": "Backend",
+					"snippets": [
+						{
+							"label": "Event Fetcher",
+							"file": "event_fetcher.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/ai_inference/event_fetcher.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/ai_inference/event_fetcher.py"
+						},
+						{
+							"label": "Prompt Builder",
+							"file": "prompt_builder.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/ai_inference/prompt_builder.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/ai_inference/prompt_builder.py"
+						},
+						{
+							"label": "Model Inference",
+							"file": "model_inference.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/ai_inference/model_inference.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/ai_inference/model_inference.py"
+						}
+					]
+				},
+				{
+					"title": "API Backend",
+					"description": "Exposing API endpoint for the frontend to call the AI inference service, start summarizations and fetch insights",
+					"groupLabel": "Backend",
+					"snippets": [
+						{
+							"label": "API Server",
+							"file": "api_server.py",
+							"language": "python",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/openai-hackathon/refs/heads/main/backend/api_server.py",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/openai-hackathon/blob/main/backend/api_server.py"
+						}
+					]
+				}
+			]
+		},
+		{
+			"project": "OAuth + OIDC Authorization Server",
+			"flow": {
+				"nodes": [
+					{
+						"id": "user",
+						"label": "User",
+						"x": -140,
+						"y": 280,
+						"info": "A typical user who wants to login to some platform / service",
+						"type": "start"
+					},
+					{
+						"id": "oauth_client",
+						"label": "OAuth + OIDC Client",
+						"x": -350,
+						"y": -310,
+						"info": "OAuth client provides an interface to the user to connect to the authorization server.",
+						"type": "process"
+					},
+					{
+						"id": "oauth_authorization",
+						"label": "OAuth Authorization",
+						"x": 100,
+						"y": -310,
+						"info": "OAuth client provides an interface to the user to connect to the authorization server.",
+						"type": "process"
+					},
+					{
+						"id": "oidc_login",
+						"label": "OIDC Login",
+						"x": 100,
+						"y": -40,
+						"info": "OAuth client provides an interface to the user to connect to the authorization server.",
+						"type": "end"
+					},
+					{
+						"id": "oauth_consent",
+						"label": "OAuth User Consent",
+						"x": 530,
+						"y": -40,
+						"type": "process"
+					},
+					{
+						"id": "oauth_token_gen",
+						"label": "OAuth Token Generation",
+						"x": -750,
+						"y": -30,
+						"type": "process"
+					}
+				],
+				"edges": [
+					{
+						"from": "user",
+						"to": "oauth_client",
+						"label": "1) Requesting login"
+					},
+					{
+						"from": "oauth_client",
+						"to": "oauth_authorization",
+						"label": "2) /authorize"
+					},
+					{
+						"from": "oauth_authorization",
+						"to": "oidc_login",
+						"label": "3a) User not logged in"
+					},
+					{
+						"from": "oidc_login",
+						"to": "user",
+						"label": "3b) Login UI"
+					},
+					{
+						"from": "user",
+						"to": "oidc_login",
+						"label": "3c) User provides login credentials"
+					},
+					{
+						"from": "oidc_login",
+						"to": "oauth_authorization",
+						"label": "3d) Logged in. Cookie sent"
+					},
+					{
+						"from": "oauth_authorization",
+						"to": "oauth_consent",
+						"label": "4a) No consent by user"
+					},
+					{
+						"from": "oauth_consent",
+						"to": "user",
+						"label": "4b) Consent approval UI"
+					},
+					{
+						"from": "user",
+						"to": "oauth_consent",
+						"label": "4c) Consent provided"
+					},
+					{
+						"from": "oauth_consent",
+						"to": "oauth_authorization",
+						"label": "4d) Consent provided"
+					},
+					{
+						"from": "oauth_authorization",
+						"to": "user",
+						"label": "5) Callback URI + Auth code provided"
+					},
+					{
+						"from": "oauth_client",
+						"to": "oauth_token_gen",
+						"label": "6) Generate access token"
+					},
+					{
+						"from": "oauth_token_gen",
+						"to": "oauth_client",
+						"label": "7) Send access token, id token (if any), refresh_token"
+					}
+				]
+			},
+			"data": [
+				{
+					"title": "OAuth Authorization",
+					"description": "Authorization services for authorizing users, generating tokens and consents",
+					"snippets": [
+						{
+							"label": "Authorize & Code Generation",
+							"file": "authorization.go",
+							"language": "golang",
+							"lineStart": 27,
+							"lineEnd": 136,
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/authorization/authorization.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oauth-server/services/authorization/authorization.go#L27C1-L136C2"
+						},
+						{
+							"label": "Token Generation",
+							"file": "authorization.go",
+							"language": "golang",
+							"lineStart": 180,
+							"lineEnd": 499,
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/authorization/authorization.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oauth-server/services/authorization/authorization.go#L180-L499"
+						},
+						{
+							"label": "Token Revocation",
+							"file": "authorization.go",
+							"language": "golang",
+							"lineStart": 502,
+							"lineEnd": 525,
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/authorization/authorization.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oauth-server/services/authorization/authorization.go#L502C1-L525C2"
+						},
+						{
+							"label": "User Consents",
+							"file": "authorization.go",
+							"language": "golang",
+							"lineStart": 138,
+							"lineEnd": 178,
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/authorization/authorization.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oauth-server/services/authorization/authorization.go#L138C1-L178C2"
+						}
+					]
+				},
+				{
+					"title": "OAuth Client Services",
+					"description": "Handles OAuth client related operations such as registration",
+					"snippets": [
+						{
+							"label": "Register OAuth Client",
+							"file": "client.go",
+							"language": "golang",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/clients/client.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/main/oauth-server/services/clients/client.go"
+						}
+					]
+				},
+				{
+					"title": "OAuth Introspection",
+					"description": "Introspect access and refresh tokens to extract payload information required by the OAuth service",
+					"snippets": [
+						{
+							"label": "Introspection",
+							"file": "introspect.go",
+							"language": "golang",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oauth-server/services/introspect/introspect.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/main/oauth-server/services/introspect/introspect.go"
+						}
+					]
+				},
+				{
+					"title": "OIDC User Service",
+					"description": "Handles the user flows such as login, logout etc. Seperate from the OAuth service.",
+					"snippets": [
+						{
+							"label": "User Fetching via ID",
+							"file": "user.go",
+							"language": "golang",
+							"lineStart": 25,
+							"lineEnd": 52,
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/users/user.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oidc-service/services/users/user.go#L25C1-L52C2"
+						},
+						{
+							"label": "User Login",
+							"file": "user.go",
+							"language": "golang",
+							"lineStart": 54,
+							"lineEnd": 96,
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/users/user.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oidc-service/services/users/user.go#L54C1-L96C2"
+						},
+						{
+							"label": "User Registration",
+							"file": "user.go",
+							"language": "golang",
+							"lineStart": 98,
+							"lineEnd": 120,
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/users/user.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oidc-service/services/users/user.go#L98C1-L120C2"
+						},
+						{
+							"label": "User Info",
+							"file": "user.go",
+							"language": "golang",
+							"lineStart": 122,
+							"lineEnd": 183,
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/users/user.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/bff718e4878c402bc27517b64db2d0f99290707c/oidc-service/services/users/user.go#L122C1-L183C2"
+						}
+					]
+				},
+				{
+					"title": "OIDC User Sessions Service",
+					"description": "Handles operations related to user sessions",
+					"snippets": [
+						{
+							"label": "End Session",
+							"file": "sessions.go",
+							"language": "golang",
+							"repoUrl": "https://raw.githubusercontent.com/Parthajeet-Sarmah/robust-backend/refs/heads/main/oidc-service/services/sessions/sessions.go",
+							"githubFileUrl": "https://github.com/Parthajeet-Sarmah/robust-backend/blob/main/oidc-service/services/sessions/sessions.go"
+						}
+					]
+				}
+			]
+		}
+	]
 }
