@@ -1,0 +1,397 @@
+/* Diff Viewer Styles */
+
+/* ============ Modal Container ============ */
+
+.diff-viewer-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+#diffViewerModal.open .diff-viewer-modal {
+    display: flex;
+    opacity: 1;
+}
+
+.diff-viewer-content {
+    background: var(--bg);
+    border-radius: 12px;
+    width: 95%;
+    max-width: 1400px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+/* ============ Header ============ */
+
+.diff-viewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elevated);
+}
+
+.diff-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.diff-header-left h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.diff-path {
+    font-size: 0.9rem;
+    color: var(--text-sub);
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+.diff-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.diff-view-toggle {
+    display: flex;
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.view-toggle-btn {
+    background: none;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: var(--text-sub);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.view-toggle-btn:hover {
+    color: var(--text);
+}
+
+.view-toggle-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.diff-viewer-close {
+    background: none;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    color: var(--text-sub);
+    border-radius: 4px;
+}
+
+.diff-viewer-close:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+}
+
+/* ============ Commit Info Bar ============ */
+
+.diff-commit-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 12px 20px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.diff-commit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.diff-commit.base {
+    color: #ef4444;
+}
+
+.diff-commit.head {
+    color: #22c55e;
+}
+
+.diff-commit-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: currentColor;
+    color: white;
+}
+
+.diff-commit.base .diff-commit-label {
+    background: #ef4444;
+}
+
+.diff-commit.head .diff-commit-label {
+    background: #22c55e;
+}
+
+.diff-commit-sha {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-elevated);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--text);
+}
+
+.diff-commit-message {
+    color: var(--text-sub);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diff-commit-date {
+    color: var(--text-sub);
+    opacity: 0.7;
+}
+
+.diff-commit-arrow {
+    color: var(--text-sub);
+}
+
+/* ============ Diff Body ============ */
+
+.diff-viewer-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+}
+
+.diff-loading,
+.diff-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-sub);
+}
+
+/* ============ Split View ============ */
+
+.diff-split-view {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.diff-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.diff-pane.base-pane {
+    border-right: 1px solid var(--border);
+}
+
+.diff-pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+}
+
+.pane-label {
+    font-weight: 600;
+}
+
+.base-pane .pane-label {
+    color: #ef4444;
+}
+
+.head-pane .pane-label {
+    color: #22c55e;
+}
+
+.pane-sha {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-sub);
+}
+
+.diff-pane-content {
+    flex: 1;
+    overflow: auto;
+    background: var(--bg);
+}
+
+.diff-pane-content pre {
+    margin: 0;
+    padding: 0;
+}
+
+.diff-pane-content code {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* ============ Unified View ============ */
+
+.diff-unified-view {
+    flex: 1;
+    overflow: auto;
+    background: var(--bg);
+}
+
+.diff-unified-view pre {
+    margin: 0;
+    padding: 0;
+}
+
+.diff-unified-view code {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* ============ Diff Lines ============ */
+
+.diff-line {
+    display: block;
+    padding: 0 16px;
+    min-height: 1.5em;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.diff-line.hunk {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+.diff-line.context {
+    background: transparent;
+}
+
+.diff-line.added {
+    background: rgba(34, 197, 94, 0.15);
+}
+
+.diff-line.removed {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.diff-line.empty {
+    background: var(--bg-elevated);
+    opacity: 0.5;
+}
+
+.diff-line .line-num {
+    display: inline-block;
+    width: 50px;
+    padding-right: 12px;
+    text-align: right;
+    color: var(--text-sub);
+    user-select: none;
+    opacity: 0.6;
+}
+
+/* Unified view line numbers */
+.diff-line .line-nums {
+    display: inline-flex;
+    width: 80px;
+    gap: 8px;
+    padding-right: 12px;
+    text-align: right;
+    color: var(--text-sub);
+    user-select: none;
+    opacity: 0.6;
+}
+
+.diff-line .line-nums .base-num,
+.diff-line .line-nums .head-num {
+    width: 36px;
+    text-align: right;
+}
+
+.diff-line .prefix {
+    display: inline-block;
+    width: 16px;
+    text-align: center;
+    user-select: none;
+}
+
+.diff-line.added .prefix {
+    color: #22c55e;
+}
+
+.diff-line.removed .prefix {
+    color: #ef4444;
+}
+
+/* ============ Responsive ============ */
+
+@media (max-width: 900px) {
+    .diff-viewer-content {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+    }
+
+    .diff-split-view {
+        flex-direction: column;
+    }
+
+    .diff-pane.base-pane {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .diff-commit-info {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .diff-commit-arrow {
+        transform: rotate(90deg);
+    }
+}

@@ -1,4 +1,5 @@
 import logging
+import secrets
 from backend.generators import anthtropic_stream
 import backend.utils as utils
 import backend.config as config
@@ -7,8 +8,8 @@ import ollama
 from functools import lru_cache
 from typing import Annotated, Any, AsyncGenerator, Callable, Dict, List, Union
 from typing import Optional
-from fastapi import Depends, FastAPI, HTTPException, Header, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import Depends, FastAPI, HTTPException, Header, Request, Response, Cookie, Query
+from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from backend.dependencies import get_llama_streamer, get_ollama_streamer
@@ -17,7 +18,7 @@ from backend.database import init_db, save_alignment, get_all_alignments
 from google import genai
 from google.genai.errors import APIError
 from openai import OpenAI, APIError
-from anthropic import Anthropic 
+from anthropic import Anthropic
 
 from fastapi.middleware.cors import CORSMiddleware
 from backend.constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS
@@ -25,6 +26,16 @@ from backend.constants import SYSTEM_PROMPT, SYSTEM_PROMPT_FOR_SNIPPETS
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
+# GitHub integration imports
+from backend.github import (
+    TokenManager,
+    OAuthHandler,
+    RepositoryService,
+    CommitService,
+    WebhookHandler,
+)
+from backend.github.webhooks import TrackingService
 
 @lru_cache
 def get_settings():
@@ -35,6 +46,27 @@ settings = get_settings()
 
 # Initialize DB
 init_db()
+
+# Initialize GitHub services
+token_manager = TokenManager(settings.TOKEN_ENCRYPTION_KEY)
+oauth_handler = OAuthHandler(
+    client_id=settings.GITHUB_CLIENT_ID,
+    client_secret=settings.GITHUB_CLIENT_SECRET,
+    redirect_uri=settings.GITHUB_REDIRECT_URI,
+    token_manager=token_manager,
+)
+repo_service = RepositoryService(oauth_handler)
+commit_service = CommitService(oauth_handler)
+webhook_handler = WebhookHandler(settings.GITHUB_WEBHOOK_SECRET, oauth_handler)
+tracking_service = TrackingService(
+    oauth_handler=oauth_handler,
+    webhook_url=settings.GITHUB_REDIRECT_URI.replace("/auth/github/callback", "/webhooks/github")
+    if settings.GITHUB_REDIRECT_URI else ""
+)
+
+# Cookie settings for session
+COOKIE_NAME = "showcode_session"
+COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
 # Initialize Limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -543,3 +575,396 @@ async def get_rsa_public_key():
         status_code=200,
         filename="rsa_public.pem"
     )
+
+
+# ============ GitHub OAuth Endpoints ============
+
+def get_user_id(session: str = Cookie(None, alias=COOKIE_NAME)) -> Optional[str]:
+    """Extract user ID from session cookie."""
+    return session
+
+
+@app.get("/auth/github/login", tags=["GitHub Auth"])
+async def github_login(redirect_after: str = Query(default="/")):
+    """Initiate GitHub OAuth flow."""
+    if not settings.GITHUB_CLIENT_ID:
+        raise HTTPException(status_code=503, detail="GitHub integration not configured")
+
+    auth_url = oauth_handler.get_authorization_url(redirect_after)
+    return RedirectResponse(url=auth_url, status_code=302)
+
+
+@app.get("/auth/github/callback", tags=["GitHub Auth"])
+async def github_callback(
+    code: str = Query(...),
+    state: str = Query(...),
+    error: Optional[str] = Query(default=None),
+    error_description: Optional[str] = Query(default=None),
+):
+    """Handle GitHub OAuth callback."""
+    if error:
+        logging.error(f"GitHub OAuth error: {error} - {error_description}")
+        return RedirectResponse(url=f"/?error={error}", status_code=302)
+
+    result = await oauth_handler.handle_callback(code, state)
+    if not result:
+        return RedirectResponse(url="/?error=auth_failed", status_code=302)
+
+    user_id = str(result["user"]["id"])
+    redirect_uri = result.get("redirect_uri", "/")
+
+    # Create response with session cookie
+    response = RedirectResponse(url=redirect_uri, status_code=302)
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=user_id,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+
+    return response
+
+
+@app.post("/auth/github/refresh", tags=["GitHub Auth"])
+async def github_refresh_token(user_id: str = Depends(get_user_id)):
+    """Refresh GitHub token if expired."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    success = await oauth_handler.refresh_token(user_id)
+    if not success:
+        raise HTTPException(status_code=401, detail="Token refresh failed")
+
+    return {"message": "Token refreshed successfully"}
+
+
+@app.post("/auth/github/logout", tags=["GitHub Auth"])
+async def github_logout(response: Response, user_id: str = Depends(get_user_id)):
+    """Logout and revoke GitHub token."""
+    if user_id:
+        oauth_handler.revoke_token(user_id)
+
+    response.delete_cookie(key=COOKIE_NAME)
+    return {"message": "Logged out successfully"}
+
+
+@app.get("/auth/github/status", tags=["GitHub Auth"])
+async def github_auth_status(user_id: str = Depends(get_user_id)):
+    """Check GitHub authentication status."""
+    if not user_id:
+        return {"authenticated": False}
+
+    status = oauth_handler.check_auth_status(user_id)
+
+    # Get user info if authenticated
+    if status.get("authenticated"):
+        user_info = repo_service.get_user_info(user_id)
+        if user_info:
+            status["user"] = user_info
+
+    return status
+
+
+# ============ GitHub Repository Endpoints ============
+
+@app.get("/github/repos", tags=["GitHub Repos"])
+async def list_repos(
+    user_id: str = Depends(get_user_id),
+    visibility: str = Query(default="all"),
+    sort: str = Query(default="updated"),
+    per_page: int = Query(default=30, le=100),
+    page: int = Query(default=1, ge=1),
+):
+    """List user's repositories."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = repo_service.list_repos(
+        user_id=user_id,
+        visibility=visibility,
+        sort=sort,
+        per_page=per_page,
+        page=page,
+    )
+
+    if "error" in result:
+        raise HTTPException(status_code=401, detail=result["error"])
+
+    return result
+
+
+@app.get("/github/repos/search", tags=["GitHub Repos"])
+async def search_repos(
+    user_id: str = Depends(get_user_id),
+    q: str = Query(..., min_length=1),
+    per_page: int = Query(default=30, le=100),
+    page: int = Query(default=1, ge=1),
+):
+    """Search repositories."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = repo_service.search_repos(
+        user_id=user_id,
+        query=q,
+        per_page=per_page,
+        page=page,
+    )
+
+    if "error" in result:
+        raise HTTPException(status_code=401, detail=result["error"])
+
+    return result
+
+
+@app.get("/github/repos/{owner}/{repo}", tags=["GitHub Repos"])
+async def get_repo(
+    owner: str,
+    repo: str,
+    user_id: str = Depends(get_user_id),
+):
+    """Get repository details."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = repo_service.get_repo(user_id, owner, repo)
+    if not result:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    return result
+
+
+@app.get("/github/repos/{owner}/{repo}/contents", tags=["GitHub Repos"])
+async def get_repo_contents(
+    owner: str,
+    repo: str,
+    user_id: str = Depends(get_user_id),
+    path: str = Query(default=""),
+    ref: Optional[str] = Query(default=None),
+):
+    """Browse repository file tree."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = repo_service.get_contents(
+        user_id=user_id,
+        owner=owner,
+        repo=repo,
+        path=path,
+        ref=ref,
+    )
+
+    if "error" in result:
+        raise HTTPException(status_code=401, detail=result["error"])
+
+    return result
+
+
+@app.get("/github/repos/{owner}/{repo}/branches", tags=["GitHub Repos"])
+async def get_repo_branches(
+    owner: str,
+    repo: str,
+    user_id: str = Depends(get_user_id),
+):
+    """List repository branches."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    branches = repo_service.get_branches(user_id, owner, repo)
+    return {"branches": branches}
+
+
+@app.get("/github/repos/{owner}/{repo}/file", tags=["GitHub Repos"])
+async def get_file_content(
+    owner: str,
+    repo: str,
+    user_id: str = Depends(get_user_id),
+    path: str = Query(...),
+    ref: Optional[str] = Query(default=None),
+):
+    """Get file content at a specific ref."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = repo_service.get_file(
+        user_id=user_id,
+        owner=owner,
+        repo=repo,
+        path=path,
+        ref=ref,
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return result
+
+
+# ============ GitHub Commit Endpoints ============
+
+@app.get("/github/repos/{owner}/{repo}/commits", tags=["GitHub Commits"])
+async def get_commits(
+    owner: str,
+    repo: str,
+    user_id: str = Depends(get_user_id),
+    sha: Optional[str] = Query(default=None),
+    path: Optional[str] = Query(default=None),
+    per_page: int = Query(default=30, le=100),
+    page: int = Query(default=1, ge=1),
+):
+    """List commits for a repository."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = commit_service.get_commits(
+        user_id=user_id,
+        owner=owner,
+        repo=repo,
+        sha=sha,
+        path=path,
+        per_page=per_page,
+        page=page,
+    )
+
+    if "error" in result:
+        raise HTTPException(status_code=401, detail=result["error"])
+
+    return result
+
+
+@app.get("/github/repos/{owner}/{repo}/commits/{sha}", tags=["GitHub Commits"])
+async def get_commit(
+    owner: str,
+    repo: str,
+    sha: str,
+    user_id: str = Depends(get_user_id),
+):
+    """Get a single commit with full details."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = commit_service.get_commit(user_id, owner, repo, sha)
+    if not result:
+        raise HTTPException(status_code=404, detail="Commit not found")
+
+    return result
+
+
+@app.get("/github/repos/{owner}/{repo}/compare/{base}...{head}", tags=["GitHub Commits"])
+async def compare_commits(
+    owner: str,
+    repo: str,
+    base: str,
+    head: str,
+    user_id: str = Depends(get_user_id),
+):
+    """Compare two commits/branches."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = commit_service.compare_commits(user_id, owner, repo, base, head)
+    if not result:
+        raise HTTPException(status_code=404, detail="Comparison failed")
+
+    return result
+
+
+@app.get("/github/repos/{owner}/{repo}/file-diff", tags=["GitHub Commits"])
+async def get_file_diff(
+    owner: str,
+    repo: str,
+    user_id: str = Depends(get_user_id),
+    path: str = Query(...),
+    base: str = Query(...),
+    head: str = Query(...),
+):
+    """Get diff for a specific file between two commits."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = commit_service.get_file_diff(
+        user_id=user_id,
+        owner=owner,
+        repo=repo,
+        path=path,
+        base_sha=base,
+        head_sha=head,
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Could not generate diff")
+
+    return result
+
+
+# ============ GitHub Tracking Endpoints ============
+
+@app.post("/github/repos/{owner}/{repo}/track", tags=["GitHub Tracking"])
+async def start_tracking(
+    owner: str,
+    repo: str,
+    user_id: str = Depends(get_user_id),
+):
+    """Start tracking a repository with webhooks."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = tracking_service.start_tracking(user_id, owner, repo)
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to start tracking"))
+
+    return result
+
+
+@app.delete("/github/repos/{owner}/{repo}/track", tags=["GitHub Tracking"])
+async def stop_tracking(
+    owner: str,
+    repo: str,
+    user_id: str = Depends(get_user_id),
+):
+    """Stop tracking a repository."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = tracking_service.stop_tracking(user_id, owner, repo)
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to stop tracking"))
+
+    return result
+
+
+@app.get("/github/tracked", tags=["GitHub Tracking"])
+async def list_tracked(user_id: str = Depends(get_user_id)):
+    """List all tracked repositories."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    repos = tracking_service.list_tracked(user_id)
+    return {"tracked_repos": repos}
+
+
+# ============ GitHub Webhook Endpoint ============
+
+@app.post("/webhooks/github", tags=["GitHub Webhooks"])
+async def receive_webhook(
+    request: Request,
+    x_github_event: str = Header(..., alias="X-GitHub-Event"),
+    x_hub_signature_256: Optional[str] = Header(None, alias="X-Hub-Signature-256"),
+):
+    """Receive and process GitHub webhook events."""
+    body = await request.body()
+
+    # Verify signature if webhook secret is configured
+    if settings.GITHUB_WEBHOOK_SECRET and x_hub_signature_256:
+        if not webhook_handler.verify_signature(body, x_hub_signature_256):
+            raise HTTPException(status_code=401, detail="Invalid signature")
+
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    result = await webhook_handler.handle_event(x_github_event, payload)
+    return result

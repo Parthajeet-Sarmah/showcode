@@ -9,3 +9,7 @@ showcode/
 __pycache__/
 alignments.db
 .alignments.db
+
+#Misc
+.python-version
+venv/

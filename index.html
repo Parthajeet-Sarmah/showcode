@@ -58,6 +58,8 @@
   <link rel="stylesheet" href="styles/alignment.css">
 	<link rel="stylesheet" href="styles/editor.css">
 	<link rel="stylesheet" href="styles/settings.css">
+  <link rel="stylesheet" href="styles/github.css">
+  <link rel="stylesheet" href="styles/diff.css">
 
   <script>
     const renderer = new marked.Renderer();
@@ -139,6 +141,15 @@
       </div>
     </div>
   </div>
+
+  <!-- GitHub Repository Browser Modal -->
+  <div id="repoBrowserModal"></div>
+
+  <!-- Commit History Side Panel -->
+  <div id="commitHistoryPanel"></div>
+
+  <!-- Diff Viewer Modal -->
+  <div id="diffViewerModal"></div>
 
   <script type="module" src="js/main.js"></script>
 </body>

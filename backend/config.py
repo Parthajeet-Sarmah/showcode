@@ -9,6 +9,13 @@ class Settings(BaseSettings):
     SERVER_SIDE_API_KEY: str = ""
     RATE_LIMIT: str = "5/minute"
 
+    # GitHub OAuth Configuration
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    GITHUB_REDIRECT_URI: str = ""
+    GITHUB_WEBHOOK_SECRET: str = ""
+    TOKEN_ENCRYPTION_KEY: str = ""  # Fernet key for encrypting tokens at rest
+
     model_config = SettingsConfigDict(
         env_file=[
             "backend/.env", 
